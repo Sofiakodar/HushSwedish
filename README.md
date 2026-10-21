@@ -41,6 +41,8 @@ HushSwedish is a **personal fork** of [HushScribe](https://github.com/drcursor/H
 | Model cache on disk | Shared system paths | **Same** — no second Whisper download if you use both apps |
 | Summary model download | Loads the model into MLX as it downloads | **Downloads the files only**, so a missing Metal library cannot quit the app |
 | Model RAM | Stays loaded until you quit | **Warm on menu open**, **idle offload** (30 min / 1 h / 2 h), **memory-pressure** unload |
+| When to start speaking | Session starts immediately or fixed pre-roll | **“Getting ready…”** until capture is live; waveform + **Transcribing** state = safe to talk |
+| Stalled mic / system audio | Hidden recovery gesture | **Restart capture** button while recording (+ hint if mic meter stays flat) |
 
 **Also in this fork:**
 
@@ -49,7 +51,8 @@ HushSwedish is a **personal fork** of [HushScribe](https://github.com/drcursor/H
 - Local **`scripts/release.sh test`** ad-hoc-signs when no Developer ID is configured (screen-recording permission may need re-granting after rebuilds).
 - **`scripts/release.sh`** builds **`mlx.metallib`** into the app. Without it, generating a summary quits the process. The script stops if the Metal toolchain is missing (`xcodebuild -downloadComponent MetalToolchain`).
 - **Model warm-up / offload:** opening the menu bar popover preloads the selected ASR model (when already downloaded). After you close the UI, models leave RAM after **Settings → Recording → Memory** (default **1 hour**). macOS **memory pressure** can unload sooner. Re-open the menu to warm again — no re-download.
-- **Pre-record countdown** (3 → 2 → 1 → “Transcribing…”) so capture and the session timer start when the engine is ready.
+- **Ready-to-transcribe overlay:** tapping **Call Capture** or **Voice Memo** shows **“Getting ready…”** while models load (if needed) and capture starts. The overlay clears when the session is actually recording (waveform active, status shows transcribing). **Wait for that** before you speak — duration depends on warm vs cold load, not a fixed timer.
+- **Restart capture:** if the mic or system meter stays flat or text stops updating, use **Restart capture** under Stop/Pause (restarts audio pipelines without ending the session). Settings → Recording explains picking a fixed mic vs System Default.
 - **Download gate:** Call Capture / Voice Memo stay disabled until the selected transcription model is on disk; the main view recommends **Whisper Large v3** (SV/EN) or **Parakeet** (English-only).
 
 Full details: [docs/changes-from-hushscribe.md](docs/changes-from-hushscribe.md) · Language design: [docs/plan-recording-language-sv-en.md](docs/plan-recording-language-sv-en.md)
@@ -80,9 +83,10 @@ Signed DMG / notarization: your Apple Developer ID in `scripts/release.sh`. Layo
 ## Day-to-day use
 
 1. **Download** your ASR model once in **Settings → Models** (default: **Whisper Large v3**).
-2. Open the menu bar app — models **warm in the background** while you set **SV/EN**, optional **name**, then **Call Capture** or **Voice Memo** (after the short countdown).
+2. Open the menu bar app — models **warm in the background** while you set **SV/EN**, optional **name**, then **Call Capture** or **Voice Memo**. Wait until **Getting ready…** disappears and the waveform is live before speaking.
 3. Transcripts land as Markdown (+ YAML) in your vault folders.
-4. **Transcript Viewer** → browse, export, optional on-device **summary** (Qwen3, Gemma, Apple NL).
+4. During a long session, if audio seems stuck, tap **Restart capture** (see [Limitations](#limitations)).
+5. **Transcript Viewer** → browse, export, optional on-device **summary** (Qwen3, Gemma, Apple NL).
 
 Close the popover when done; transcription models **drop from RAM** after the idle interval you chose (default 1 hour) so the app can stay in the menu bar without holding ~1–3 GB. Open the menu again before the next meeting to warm up.
 
@@ -136,7 +140,9 @@ On-device ASR and summaries; no analytics or telemetry in the app design; **text
 
 ## Limitations
 
-Apple Silicon + macOS 26+; post-session diarization; browser meetings not auto-detected; **KB-Whisper** not integrated yet. Mic/system capture can stall — fixed input device in Settings or triple-click the wordmark to reset capture. Window hidden from screen share by default (`com.hushswedish.app` prefs).
+Apple Silicon + macOS 26+; post-session diarization; browser meetings not auto-detected; **KB-Whisper** not integrated yet.
+
+**Audio stalls:** macOS or Bluetooth can sometimes leave mic/system capture running but silent (flat meters, no new transcript lines). Prefer a **specific microphone** in **Settings → Recording** instead of System Default. While recording, use **Restart capture** at the bottom of the control bar; an orange hint appears if the mic meter stays flat for ~10 seconds while you are unmuted. Window hidden from screen share by default (`com.hushswedish.app` prefs).
 
 ## Credits & license
 

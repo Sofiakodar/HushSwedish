@@ -38,11 +38,11 @@ Upstream behavior still applies unless listed here. For session-language design 
 
 **HushSwedish:**
 
-1. **Warm-up** — When you open the menu bar popover (or the detached main window), the app preloads **VAD + the selected ASR model** if files are already cached (WhisperKit or Parakeet). Same warm-up runs again during the pre-record **“Transcribing…”** step if needed.
-2. **Pre-record countdown** — **3 → 2 → 1 → “Transcribing…”** before capture starts, so the session timer and mic align with a ready engine and you know when to start speaking.
+1. **Warm-up** — When you open the menu bar popover (or the detached main window), the app preloads **VAD + the selected ASR model** if files are already cached (WhisperKit or Parakeet). The same warm-up runs again when you start a session if anything is still unloaded.
+2. **Ready-to-transcribe overlay** — **Upstream** often felt like “record” before the engine and mic were truly live. **HushSwedish** shows a full-screen **“Getting ready…”** overlay (spinner + short instruction) from the moment you tap **Call Capture** or **Voice Memo** until capture actually starts. The overlay dismisses when the session is recording (waveform live, engine transcribing). **There is no fixed 3-2-1 countdown** — wait until the overlay clears, then speak. Cold loads take longer; warm loads (popover was open) are usually brief.
 3. **Idle offload** — When the popover/window **closes** and you are not recording or downloading, a timer starts (**Settings → Recording → Memory**): **30 minutes**, **1 hour** (default), or **2 hours**. When it fires, in-memory ASR + VAD are released; **disk cache is unchanged** (no re-download).
 4. **Memory pressure** — macOS **warning/critical** memory pressure unloads models early (unless a session or download is active), even if the idle timer has not fired.
-5. **Next meeting** — Open the menu again; warm-up reloads from cache in a few seconds, then countdown → record. You do **not** need to quit HushSwedish between morning and afternoon meetings.
+5. **Next meeting** — Open the menu again; warm-up reloads from cache in a few seconds, then record when **Getting ready…** finishes. You do **not** need to quit HushSwedish between morning and afternoon meetings.
 
 Offload does **not** run while the UI is visible, while recording, or while a model download is in progress.
 
@@ -92,6 +92,23 @@ Default session language for new installs: **Swedish**.
 - **Call capture** still needs **Screen & system audio recording** (for “Them”).
 - **Voice memo** starts **mic-only** and does **not** start system-audio capture, so it should not trigger screen-capture permission for memo-only use.
 
+### When to start speaking (Getting ready…)
+
+- Tapping record blocks the UI with **Getting ready…** / *Wait until transcribing starts, then begin speaking.*
+- Work behind the overlay: optional warm-up, session file setup, `TranscriptionEngine.start()` (mic + system audio for calls).
+- **User signal that it is safe to talk:** overlay gone, pulsing record controls, waveform meters updating, status line shows transcribing (not still loading models).
+
+### Restart capture (recovery without stopping the session)
+
+**Problem:** On macOS, mic or system-audio capture can **stall** — session looks active but meters stay flat or transcript lines stop (common with **System Default** mic after Bluetooth connect/disconnect, or flaky ScreenCaptureKit for call audio).
+
+**HushSwedish (vs upstream’s easy-to-miss triple-click on the header):**
+
+- While recording, the control bar includes **Restart capture** — restarts mic and system-audio pipelines **without** ending the session or losing the transcript so far.
+- If the **mic meter** stays near zero for **~10 seconds** while you are unmuted and not paused, an **orange hint** appears above the button.
+- **Settings → Recording → Audio Input** explains choosing a **fixed microphone** instead of System Default.
+- The automatic **1-second reset after every session start** was removed so the first second of speech is not discarded; recovery is user-initiated via **Restart capture**.
+
 ### Local dev builds and screen recording
 
 - Unsigned or frequently rebuilt `dist/HushSwedish.app` copies can make macOS show the screen-recording dialog every session even when Settings shows an old toggle.
@@ -121,7 +138,7 @@ Default session language for new installs: **Swedish**.
 
 ## Branding and docs
 
-- UI wordmark, notifications, temp files, and logger subsystem use **HushSwedish** / `hushswedish` tokens.
+- UI header uses a **HushSwedish** wordmark (rounded type, **Swedish** in flag blue) instead of the upstream all-caps **HUSHSCRIBE** style; notifications, temp files, and logger subsystem use **HushSwedish** / `hushswedish` tokens.
 - README and static docs site updated for the fork; upstream **CNAME** for hushscribe.app removed from this repo.
 - GitHub: [Sofiakodar/HushSwedish](https://github.com/Sofiakodar/HushSwedish).
 
@@ -162,7 +179,8 @@ Rough order of fork-specific commits:
 7. Screen capture permission handling for local builds  
 8. Flush in-flight speech on pause/stop  
 9. Summary model download no longer quits the app  
-10. Warm-load on popover open, pre-record countdown, require ASR download before record  
+10. Warm-load on popover open, require ASR download before record  
 11. Remove Apple Speech; idle model offload + memory-pressure handling  
+12. Ready-to-transcribe overlay (replacing fixed 3-2-1 countdown); header wordmark; **Restart capture** in UI; remove automatic post-start capture reset  
 
 For exact diffs, use `git log` on this repository from the first fork commit through `HEAD`.
