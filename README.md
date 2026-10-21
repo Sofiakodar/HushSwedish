@@ -86,7 +86,7 @@ Signed DMG / notarization: your Apple Developer ID in `scripts/release.sh`. Layo
 
 1. **Download** your ASR model once in **Settings → Models** (default for Swedish: **Whisper Large v3**).
 2. Open the menu bar app — models **warm in the background** while you set **SV/EN**, optional **name**, then **Call Capture** or **Voice Memo**. Wait until **Getting ready…** disappears and the waveform is live before speaking.
-3. Transcripts land as Markdown (+ YAML) in the folder of your choosing. you can choose an Obsidian vault. 
+3. Transcripts land as Markdown (+ YAML) in the folder of your choosing (for example an Obsidian vault). 
 4. During a long session, if audio seems stuck, tap **Restart capture** (see [Limitations](#limitations)).
 5. **Transcript Viewer** → browse, export, optional on-device **summary** (Qwen3, Gemma, Apple NL).
 
