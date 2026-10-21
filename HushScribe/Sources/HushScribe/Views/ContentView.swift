@@ -656,7 +656,8 @@ struct ContentView: View {
                 await transcriptionEngine.start(
                     sessionLanguage: sessionLanguage,
                     inputDeviceID: settings.inputDeviceID,
-                    sysVadThreshold: settings.sysVadThreshold
+                    sysVadThreshold: settings.sysVadThreshold,
+                    captureSystemAudio: false
                 )
             }
         }

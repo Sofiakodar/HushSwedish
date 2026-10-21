@@ -1,5 +1,6 @@
 @preconcurrency import ScreenCaptureKit
 @preconcurrency import AVFoundation
+import CoreGraphics
 import CoreMedia
 import os
 
@@ -29,6 +30,10 @@ final class SystemAudioCapture: NSObject, @unchecked Sendable, SCStreamDelegate,
 
     /// Start capturing system audio. Pass a bundle ID to filter to a specific app.
     func bufferStream(appBundleID: String? = nil) async throws -> CaptureStreams {
+        guard CGPreflightScreenCaptureAccess() else {
+            throw CaptureError.screenRecordingNotAuthorized
+        }
+
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
 
         guard let display = content.displays.first else {
@@ -171,7 +176,22 @@ final class SystemAudioCapture: NSObject, @unchecked Sendable, SCStreamDelegate,
         return sqrt(sum / Float(frameLength))
     }
 
-    enum CaptureError: Error {
+    enum CaptureError: Error, LocalizedError {
         case noDisplay
+        case screenRecordingNotAuthorized
+
+        var errorDescription: String? {
+            switch self {
+            case .noDisplay:
+                return "No display found for system audio capture."
+            case .screenRecordingNotAuthorized:
+                return """
+                Screen & system audio recording isn’t active for this copy of \(AppIdentity.displayName). \
+                In System Settings → Privacy & Security → Screen & System Audio Recording, remove \(AppIdentity.displayName), \
+                start recording once, then enable the toggle again. \
+                If you rebuild the app locally, repeat after each rebuild unless it’s signed with a stable Developer ID certificate.
+                """
+            }
+        }
     }
 }

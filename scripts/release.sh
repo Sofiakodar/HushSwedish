@@ -79,16 +79,29 @@ fi
 cp "$SWIFT_DIR/Sources/HushScribe/Info.plist" "$CONTENTS/Info.plist"
 
 echo "--- Step 3: Deep Signing with Hardened Runtime ---"
+if [[ -z "$DEVELOPER_ID" ]]; then
+  echo "No Developer ID certificate found — ad-hoc signing for local testing."
+  echo "Screen Recording permission may need to be re-granted after each rebuild."
+  DEVELOPER_ID="-"
+  CODESIGN_TIMESTAMP=()
+else
+  CODESIGN_TIMESTAMP=(--timestamp)
+fi
+
 # We sign every .dylib, .framework, .so, and .metallib first, then the main app.
 find "$APP_BUNDLE" -type f \( -name "*.dylib" -o -name "*.framework" -o -name "*.so" -o -name "*.metallib" \) -print0 | xargs -0 -I {} \
-codesign --force --options runtime --timestamp --sign "$DEVELOPER_ID" "{}"
+codesign --force --options runtime "${CODESIGN_TIMESTAMP[@]}" --sign "$DEVELOPER_ID" "{}"
 
 echo "Signing main executable and bundle..."
 
-codesign --force --options runtime --timestamp \
+codesign --force --options runtime "${CODESIGN_TIMESTAMP[@]}" \
          --entitlements "$ENTITLEMENTS" \
          --sign "$DEVELOPER_ID" \
          "$APP_BUNDLE"
+
+if ! codesign --verify --deep --strict "$APP_BUNDLE" 2>/dev/null; then
+  echo "Warning: App bundle signature verification failed."
+fi
 
 
 

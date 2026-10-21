@@ -1,5 +1,6 @@
 @preconcurrency import AVFoundation
 import CoreAudio
+import CoreGraphics
 import FluidAudio
 import Observation
 import WhisperKit
@@ -106,6 +107,7 @@ final class TranscriptionEngine {
 
     /// App bundle ID used when system audio capture was last started — needed for restarts.
     private var captureAppBundleID: String? = nil
+    private var capturesSystemAudio = true
 
     /// Listens for default input device changes at the OS level.
     private var defaultDeviceListenerBlock: AudioObjectPropertyListenerBlock?
@@ -324,7 +326,13 @@ final class TranscriptionEngine {
         return backend
     }
 
-    func start(sessionLanguage: SessionTranscriptionLanguage, inputDeviceID: AudioDeviceID = 0, appBundleID: String? = nil, sysVadThreshold: Double = 0.92) async {
+    func start(
+        sessionLanguage: SessionTranscriptionLanguage,
+        inputDeviceID: AudioDeviceID = 0,
+        appBundleID: String? = nil,
+        sysVadThreshold: Double = 0.92,
+        captureSystemAudio: Bool = true
+    ) async {
         diagLog("[ENGINE-0] start() called, isRunning=\(isRunning)")
         guard !isRunning else { return }
         lastError = nil
@@ -453,17 +461,23 @@ final class TranscriptionEngine {
         diagLog("[ENGINE-3] starting mic capture, targetMicID=\(String(describing: targetMicID))")
         let micStream = micCapture.bufferStream(deviceID: targetMicID)
 
-        // 3. Start system audio capture
+        // 3. Start system audio capture (call capture only — not voice memos)
         captureAppBundleID = appBundleID
-        diagLog("[ENGINE-4] starting system audio capture...")
+        capturesSystemAudio = captureSystemAudio
         let sysStreams: SystemAudioCapture.CaptureStreams?
-        do {
-            sysStreams = try await systemCapture.bufferStream(appBundleID: appBundleID)
-            diagLog("[ENGINE-5] system audio capture started OK")
-        } catch {
-            let msg = "Failed to start system audio: \(error.localizedDescription)"
-            diagLog("[ENGINE-5-FAIL] \(msg)")
-            lastError = msg
+        if captureSystemAudio {
+            diagLog("[ENGINE-4] starting system audio capture, preflight=\(CGPreflightScreenCaptureAccess())...")
+            do {
+                sysStreams = try await systemCapture.bufferStream(appBundleID: appBundleID)
+                diagLog("[ENGINE-5] system audio capture started OK")
+            } catch {
+                let msg = error.localizedDescription
+                diagLog("[ENGINE-5-FAIL] \(msg)")
+                lastError = msg
+                sysStreams = nil
+            }
+        } else {
+            diagLog("[ENGINE-4] skipping system audio capture for this session type")
             sysStreams = nil
         }
 
@@ -674,13 +688,17 @@ final class TranscriptionEngine {
         await systemCapture.stop()
 
         let sysStreams: SystemAudioCapture.CaptureStreams?
-        do {
-            sysStreams = try await systemCapture.bufferStream(appBundleID: captureAppBundleID)
-            diagLog("[ENGINE-RESET] system audio restarted")
-        } catch {
-            let msg = "System audio restart failed: \(error.localizedDescription)"
-            diagLog("[ENGINE-RESET] \(msg)")
-            lastError = msg
+        if capturesSystemAudio {
+            do {
+                sysStreams = try await systemCapture.bufferStream(appBundleID: captureAppBundleID)
+                diagLog("[ENGINE-RESET] system audio restarted")
+            } catch {
+                let msg = error.localizedDescription
+                diagLog("[ENGINE-RESET] \(msg)")
+                lastError = msg
+                sysStreams = nil
+            }
+        } else {
             sysStreams = nil
         }
 

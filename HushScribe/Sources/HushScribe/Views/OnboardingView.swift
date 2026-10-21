@@ -260,8 +260,11 @@ struct OnboardingView: View {
     }
 
     private func requestScreen() {
-        // CGRequestScreenCaptureAccess only shows a banner on modern macOS; always open
-        // Settings so the user can actually toggle the permission on.
+        if CGPreflightScreenCaptureAccess() {
+            screenGranted = true
+            return
+        }
+        // Triggers the system prompt once; user may still need to toggle in Settings.
         CGRequestScreenCaptureAccess()
         openSettings("x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ScreenCapture")
     }
