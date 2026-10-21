@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>On-device meeting & voice transcription for macOS — built for Swedish and English.</strong><br/>
-  Pricacy first. No cloud. No API keys. Markdown transcripts and summaries - perfect for Obsidian.
+  Privacy first. No cloud. No API keys. Markdown transcripts and summaries.
 </p>
 
 <p align="center">
@@ -18,7 +18,9 @@
 
 ---
 
-HushSwedish is a **personal fork** of [HushScribe](https://github.com/drcursor/HushScribe) ([hushscribe.app](https://hushscribe.app/)). It is **not** affiliated with or maintained by the upstream project. Same local-first idea — menu bar capture, on-device models, `.md` transcripts — with changes tuned for **Swedish meetings** and for **running next to** the official app (`com.drcursor.hushscribe` vs `com.hushswedish.app`).
+HushSwedish is a **personal fork** of [HushScribe](https://github.com/drcursor/HushScribe) ([hushscribe.app](https://hushscribe.app/)). It is **not** affiliated with or maintained by the upstream project. Same local-first idea — menu bar capture, on-device models, `.md` transcripts and summaries (perfect for Obsidian). Changes tuned for **Swedish meetings** 
+
+It can also be used **next to** the official app (`com.drcursor.hushscribe` vs `com.hushswedish.app`).
 
 <p align="center">
   <img src="assets/main.png" height="240" alt="HushSwedish — recording" />
