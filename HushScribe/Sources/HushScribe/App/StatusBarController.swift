@@ -7,6 +7,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
     private var autoDetectDotView: NSView?
+    private var recordingDotView: NSView?
     private var closePopoverObserver: Any?
     private var openSettingsAction: (() -> Void)?
     private weak var mainWindow: NSWindow?
@@ -87,27 +88,42 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         if let svgURL = Bundle.main.url(forResource: "logo", withExtension: "svg"),
            let svgImage = NSImage(contentsOf: svgURL) {
             svgImage.size = iconSize
-            if recordingState?.isPaused == true {
-                button.image = logoTinted(svgImage, color: .systemOrange)
-            } else if recordingState?.isRecording == true {
-                button.image = logoTinted(svgImage, color: .systemRed)
-            } else {
-                button.image = svgImage
-            }
+            button.image = svgImage
         } else {
-            // Fallback to SF Symbols if logo.svg is unavailable
-            let name: String
-            if recordingState?.isPaused == true {
-                name = "pause.circle.fill"
-            } else if recordingState?.isRecording == true {
-                name = "record.circle.fill"
-            } else {
-                name = "quote.bubble"
-            }
-            button.image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
+            button.image = NSImage(systemSymbolName: "quote.bubble", accessibilityDescription: nil)
         }
 
         updateAutoDetectDot(on: button)
+        updateRecordingDot(on: button)
+    }
+
+    /// macOS-style orange indicator while a session is active (recording or paused).
+    private func updateRecordingDot(on button: NSButton) {
+        let isActive = recordingState?.isRecording == true
+        if isActive {
+            if recordingDotView == nil {
+                let dotSize: CGFloat = 6
+                let dot = NSView(frame: NSRect(
+                    x: button.bounds.width - dotSize + 0.5,
+                    y: button.bounds.height - dotSize + 0.5,
+                    width: dotSize,
+                    height: dotSize
+                ))
+                dot.wantsLayer = true
+                dot.layer?.backgroundColor = NSColor.systemOrange.cgColor
+                dot.layer?.cornerRadius = dotSize / 2
+                dot.layer?.borderWidth = 0.5
+                dot.layer?.borderColor = NSColor.black.withAlphaComponent(0.25).cgColor
+                dot.autoresizingMask = [.minXMargin, .minYMargin]
+                button.addSubview(dot)
+                recordingDotView = dot
+            } else if let dot = recordingDotView {
+                button.addSubview(dot)
+            }
+        } else {
+            recordingDotView?.removeFromSuperview()
+            recordingDotView = nil
+        }
     }
 
     private func updateAutoDetectDot(on button: NSButton) {
@@ -131,16 +147,6 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             autoDetectDotView?.removeFromSuperview()
             autoDetectDotView = nil
         }
-    }
-
-    private func logoTinted(_ image: NSImage, color: NSColor) -> NSImage {
-        let result = NSImage(size: image.size)
-        result.lockFocus()
-        image.draw(in: NSRect(origin: .zero, size: image.size))
-        color.withAlphaComponent(0.85).setFill()
-        NSRect(origin: .zero, size: image.size).fill(using: .sourceAtop)
-        result.unlockFocus()
-        return result
     }
 
     private func applyMode(_ mode: MainWindowMode) {
