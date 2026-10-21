@@ -65,11 +65,10 @@ struct OnboardingView: View {
                        let svgImage = NSImage(contentsOf: svgURL) {
                         Image(nsImage: svgImage)
                             .resizable()
-                            .renderingMode(.template)
+                            .renderingMode(.original)
                             .interpolation(.high)
                             .scaledToFit()
                             .frame(width: 72, height: 72)
-                            .foregroundStyle(Color.accent1)
                             .id(currentStep)
                     } else {
                         Image(nsImage: NSApplication.shared.applicationIconImage)

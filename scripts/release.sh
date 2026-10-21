@@ -70,7 +70,10 @@ if [[ -f "$ICON_PATH" ]]; then
   echo "App icon copied"
 fi
 
-LOGO_PATH="$SWIFT_DIR/Sources/HushScribe/Assets/logo.svg"
+LOGO_PATH="$ROOT_DIR/assets/hushswedish-logo.svg"
+if [[ ! -f "$LOGO_PATH" ]]; then
+  LOGO_PATH="$SWIFT_DIR/Sources/HushScribe/Assets/logo.svg"
+fi
 if [[ -f "$LOGO_PATH" ]]; then
   cp "$LOGO_PATH" "$APP_BUNDLE/Contents/Resources/logo.svg"
   echo "Logo copied"

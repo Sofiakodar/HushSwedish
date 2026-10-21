@@ -92,7 +92,6 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             } else if recordingState?.isRecording == true {
                 button.image = logoTinted(svgImage, color: .systemRed)
             } else {
-                svgImage.isTemplate = true
                 button.image = svgImage
             }
         } else {
