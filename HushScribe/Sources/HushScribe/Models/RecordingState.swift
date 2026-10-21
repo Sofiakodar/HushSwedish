@@ -9,12 +9,14 @@ final class RecordingState {
 }
 
 extension Notification.Name {
-    static let hushscribeStartCallCapture = Notification.Name("hushscribeStartCallCapture")
-    static let hushscribeStartVoiceMemo = Notification.Name("hushscribeStartVoiceMemo")
-    static let hushscribeStopRecording = Notification.Name("hushscribeStopRecording")
-    static let hushscribePauseRecording = Notification.Name("hushscribePauseRecording")
-    static let hushscribeResumeRecording = Notification.Name("hushscribeResumeRecording")
-    static let hushscribeOpenSummarize = Notification.Name("hushscribeOpenSummarize")
-    static let hushscribeClosePopover = Notification.Name("hushscribeClosePopover")
-    static let hushscribeShowOnboarding = Notification.Name("hushscribeShowOnboarding")
+    private static let prefix = AppIdentity.bundleIdentifier
+
+    static let appStartCallCapture = Notification.Name("\(prefix).startCallCapture")
+    static let appStartVoiceMemo = Notification.Name("\(prefix).startVoiceMemo")
+    static let appStopRecording = Notification.Name("\(prefix).stopRecording")
+    static let appPauseRecording = Notification.Name("\(prefix).pauseRecording")
+    static let appResumeRecording = Notification.Name("\(prefix).resumeRecording")
+    static let appOpenSummarize = Notification.Name("\(prefix).openSummarize")
+    static let appClosePopover = Notification.Name("\(prefix).closePopover")
+    static let appShowOnboarding = Notification.Name("\(prefix).showOnboarding")
 }

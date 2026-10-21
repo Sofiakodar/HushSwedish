@@ -178,7 +178,7 @@ tags:
         }
 
         // Atomic write
-        let tmpPath = filePath.deletingLastPathComponent().appendingPathComponent(".hushscribe_tmp.md")
+        let tmpPath = filePath.deletingLastPathComponent().appendingPathComponent(".\(AppIdentity.tempFileToken)_tmp.md")
         try? content.write(to: tmpPath, atomically: true, encoding: .utf8)
         try? FileManager.default.removeItem(at: filePath)
         try? FileManager.default.moveItem(at: tmpPath, to: filePath)
@@ -303,7 +303,7 @@ tags:
         }
 
         // Atomic write
-        let tmpPath = filePath.deletingLastPathComponent().appendingPathComponent(".hushscribe_tmp.md")
+        let tmpPath = filePath.deletingLastPathComponent().appendingPathComponent(".\(AppIdentity.tempFileToken)_tmp.md")
         try? content.write(to: tmpPath, atomically: true, encoding: .utf8)
 
         if finalPath != filePath {
@@ -399,7 +399,7 @@ tags:
         }
 
         // Atomic write
-        let tmpPath = filePath.deletingLastPathComponent().appendingPathComponent(".hushscribe_diar_tmp.md")
+        let tmpPath = filePath.deletingLastPathComponent().appendingPathComponent(".\(AppIdentity.tempFileToken)_diar_tmp.md")
         try? content.write(to: tmpPath, atomically: true, encoding: .utf8)
         try? FileManager.default.removeItem(at: filePath)
         try? FileManager.default.moveItem(at: tmpPath, to: filePath)
@@ -470,7 +470,7 @@ tags:
             content.replaceSubrange(range, with: "**Speakers:** \(diarSpeakerMap.values.count)")
         }
 
-        let tmpPath = filePath.deletingLastPathComponent().appendingPathComponent(".hushscribe_diar_tmp.md")
+        let tmpPath = filePath.deletingLastPathComponent().appendingPathComponent(".\(AppIdentity.tempFileToken)_diar_tmp.md")
         try? content.write(to: tmpPath, atomically: true, encoding: .utf8)
         try? FileManager.default.removeItem(at: filePath)
         try? FileManager.default.moveItem(at: tmpPath, to: filePath)
@@ -495,7 +495,7 @@ tags:
             lastSpeakersDetected.insert(realName)
         }
 
-        let tmpPath = filePath.deletingLastPathComponent().appendingPathComponent(".hushscribe_rename_tmp.md")
+        let tmpPath = filePath.deletingLastPathComponent().appendingPathComponent(".\(AppIdentity.tempFileToken)_rename_tmp.md")
         try? content.write(to: tmpPath, atomically: true, encoding: .utf8)
         try? FileManager.default.removeItem(at: filePath)
         try? FileManager.default.moveItem(at: tmpPath, to: filePath)

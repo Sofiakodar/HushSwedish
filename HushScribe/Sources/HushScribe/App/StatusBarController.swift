@@ -43,7 +43,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         applyMode(settings.mainWindowMode)
 
         closePopoverObserver = NotificationCenter.default.addObserver(
-            forName: .hushscribeClosePopover,
+            forName: .appClosePopover,
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -53,7 +53,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         }
 
         NotificationCenter.default.addObserver(
-            forName: .hushscribeShowOnboarding,
+            forName: .appShowOnboarding,
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -237,8 +237,8 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         menu.addItem(title)
         menu.addItem(.separator())
 
-        menu.addItem(makeItem("Show \(AppIdentity.displayName)", action: #selector(showHushScribe)))
-        menu.addItem(makeItem("Hide \(AppIdentity.displayName)", action: #selector(hideHushScribe)))
+        menu.addItem(makeItem("Show \(AppIdentity.displayName)", action: #selector(showAppWindow)))
+        menu.addItem(makeItem("Hide \(AppIdentity.displayName)", action: #selector(hideAppWindow)))
         menu.addItem(.separator())
 
         if !recordingState.isRecording {
@@ -286,7 +286,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     // MARK: - Menu Actions
 
-    @objc private func showHushScribe() {
+    @objc private func showAppWindow() {
         NSApp.setActivationPolicy(.regular)
         if let existing = NSApp.windows.first(where: { !($0 is NSPanel) && $0.level == .normal }) {
             existing.makeKeyAndOrderFront(nil)
@@ -294,29 +294,29 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    @objc private func hideHushScribe() {
+    @objc private func hideAppWindow() {
         NSApp.windows.first { $0.isVisible && !($0 is NSPanel) && $0.level == .normal }?.orderOut(nil)
         NSApp.setActivationPolicy(.accessory)
     }
 
     @objc private func startCallCapture() {
-        NotificationCenter.default.post(name: .hushscribeStartCallCapture, object: nil)
+        NotificationCenter.default.post(name: .appStartCallCapture, object: nil)
     }
 
     @objc private func startVoiceMemo() {
-        NotificationCenter.default.post(name: .hushscribeStartVoiceMemo, object: nil)
+        NotificationCenter.default.post(name: .appStartVoiceMemo, object: nil)
     }
 
     @objc private func pauseRecording() {
-        NotificationCenter.default.post(name: .hushscribePauseRecording, object: nil)
+        NotificationCenter.default.post(name: .appPauseRecording, object: nil)
     }
 
     @objc private func resumeRecording() {
-        NotificationCenter.default.post(name: .hushscribeResumeRecording, object: nil)
+        NotificationCenter.default.post(name: .appResumeRecording, object: nil)
     }
 
     @objc private func stopRecording() {
-        NotificationCenter.default.post(name: .hushscribeStopRecording, object: nil)
+        NotificationCenter.default.post(name: .appStopRecording, object: nil)
     }
 
     @objc private func toggleAutoMeetings() {
@@ -324,7 +324,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     }
 
     @objc private func openTranscriptViewer() {
-        NotificationCenter.default.post(name: .hushscribeOpenSummarize, object: nil)
+        NotificationCenter.default.post(name: .appOpenSummarize, object: nil)
     }
 
     @objc private func openSettingsMenu() {

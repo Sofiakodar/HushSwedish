@@ -11,4 +11,10 @@ enum AppIdentity {
 
     static let applicationSupportDirectoryName = "HushSwedish"
     static let transcriptSourceTag = "source/hushswedish"
+
+    /// Uppercase title in the main window header (replaces legacy HUSHSCRIBE wordmark).
+    static var wordmark: String { displayName.uppercased() }
+
+    /// Prefix for temp audio/log files (not user-visible).
+    static let tempFileToken = "hushswedish"
 }

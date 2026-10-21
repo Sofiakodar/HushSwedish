@@ -5,11 +5,11 @@ import Observation
 import WhisperKit
 import os
 
-// Writes to /tmp/hushscribe.log
+// Writes to /tmp/hushswedish.log
 func diagLog(_ msg: String) {
     #if DEBUG
     let line = "\(Date()): \(msg)\n"
-    let path = "/tmp/hushscribe.log"
+    let path = "/tmp/\(AppIdentity.tempFileToken).log"
     if let fh = FileHandle(forWritingAtPath: path) {
         fh.seekToEndOfFile()
         fh.write(line.data(using: .utf8)!)
@@ -825,7 +825,7 @@ final class TranscriptionEngine {
     // MARK: - File Transcription
 
     /// Transcribe an audio or video file using the same VAD + ASR pipeline as live sessions.
-    /// Posts `.hushscribeStopRecording` when processing completes so ContentView can finalize the session.
+    /// Posts `.appStopRecording` when processing completes so ContentView can finalize the session.
     func startFileTranscription(url: URL, sessionLanguage: SessionTranscriptionLanguage) async {
         guard !isRunning else { return }
         lastError = nil
@@ -935,7 +935,7 @@ final class TranscriptionEngine {
             // Only auto-stop when the file finished naturally.
             // If fileTask was cancelled (manual Stop), stopSession() already ran — don't call it again.
             guard !Task.isCancelled else { return }
-            NotificationCenter.default.post(name: .hushscribeStopRecording, object: nil)
+            NotificationCenter.default.post(name: .appStopRecording, object: nil)
         }
     }
 
@@ -1020,7 +1020,7 @@ final class TranscriptionEngine {
         guard reader.startReading() else { throw CocoaError(.fileReadUnknown) }
 
         let wavURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("hushscribe_diar_\(UUID().uuidString).wav")
+            .appendingPathComponent("\(AppIdentity.tempFileToken)_diar_\(UUID().uuidString).wav")
         guard let audioFile = try? AVAudioFile(forWriting: wavURL, settings: pcmFormat.settings) else {
             throw CocoaError(.fileWriteUnknown)
         }

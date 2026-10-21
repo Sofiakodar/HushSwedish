@@ -80,7 +80,7 @@ private struct MainSettingsTab: View {
                 settingsWindowRef?.close()
                 settingsWindowRef = nil
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    NotificationCenter.default.post(name: .hushscribeShowOnboarding, object: nil)
+                    NotificationCenter.default.post(name: .appShowOnboarding, object: nil)
                 }
             }
             Button("Cancel", role: .cancel) {}

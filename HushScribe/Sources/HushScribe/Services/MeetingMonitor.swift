@@ -156,7 +156,7 @@ final class MeetingMonitor {
             self.triggerBundleID = NSWorkspace.shared.runningApplications
                 .first(where: { Self.watchedApps[$0.bundleIdentifier ?? ""] != nil })?
                 .bundleIdentifier
-            NotificationCenter.default.post(name: .hushscribeStartCallCapture, object: nil)
+            NotificationCenter.default.post(name: .appStartCallCapture, object: nil)
         }
     }
 
@@ -171,7 +171,7 @@ final class MeetingMonitor {
             try? await Task.sleep(nanoseconds: UInt64(stopDelaySecs) * 1_000_000_000)
             guard !Task.isCancelled, !self.isMeetingActive else { return }
             self.triggerBundleID = nil
-            NotificationCenter.default.post(name: .hushscribeStopRecording, object: nil)
+            NotificationCenter.default.post(name: .appStopRecording, object: nil)
         }
     }
 

@@ -167,25 +167,25 @@ struct ContentView: View {
 
     private var notificationHandlers: some View {
         Color.clear
-            .onReceive(NotificationCenter.default.publisher(for: .hushscribeStartCallCapture)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .appStartCallCapture)) { _ in
                 startSession(type: .callCapture)
             }
-            .onReceive(NotificationCenter.default.publisher(for: .hushscribeStartVoiceMemo)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .appStartVoiceMemo)) { _ in
                 startSession(type: .voiceMemo)
             }
-            .onReceive(NotificationCenter.default.publisher(for: .hushscribeStopRecording)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .appStopRecording)) { _ in
                 stopSession()
             }
-            .onReceive(NotificationCenter.default.publisher(for: .hushscribePauseRecording)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .appPauseRecording)) { _ in
                 pauseFromMenu()
             }
-            .onReceive(NotificationCenter.default.publisher(for: .hushscribeResumeRecording)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .appResumeRecording)) { _ in
                 resumeFromMenu()
             }
-            .onReceive(NotificationCenter.default.publisher(for: .hushscribeOpenSummarize)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .appOpenSummarize)) { _ in
                 SummarizeView.openWindow(settings: settings, logger: transcriptLogger)
             }
-            .onReceive(NotificationCenter.default.publisher(for: .hushscribeShowOnboarding)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .appShowOnboarding)) { _ in
                 showOnboarding = true
             }
     }
@@ -224,9 +224,9 @@ struct ContentView: View {
 
     private var topBar: some View {
         HStack(spacing: 0) {
-            Text("HUSHSCRIBE")
-                .font(.system(size: 14, weight: .heavy))
-                .tracking(3)
+            Text(AppIdentity.wordmark)
+                .font(.system(size: 13, weight: .heavy))
+                .tracking(2)
                 .foregroundStyle(logoFlash ? Color.accent1 : Color.fg1)
                 .onTapGesture(count: 3) {
                     guard isRunning else { return }
@@ -294,7 +294,7 @@ struct ContentView: View {
             toolbarButton(icon: "doc.text.magnifyingglass", label: "Transcripts") {
                 SummarizeView.openWindow(settings: settings, logger: transcriptLogger)
                 if settings.mainWindowMode == .attached {
-                    NotificationCenter.default.post(name: .hushscribeClosePopover, object: nil)
+                    NotificationCenter.default.post(name: .appClosePopover, object: nil)
                 }
             }
             toolbarButton(icon: "gear", label: "Settings") {
