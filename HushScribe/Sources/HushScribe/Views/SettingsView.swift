@@ -106,6 +106,9 @@ private struct RecordingSettingsTab: View {
                     }
                 }
                 .font(.system(size: 12))
+                Text("If the mic meter stays flat while you talk, choose a specific device instead of System Default (common with Bluetooth or after macOS switches inputs). During a recording, use Restart capture below the waveform.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
             }
 
             Section("Silence Timeout") {

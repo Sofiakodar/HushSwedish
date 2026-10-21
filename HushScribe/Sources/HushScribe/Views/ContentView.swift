@@ -52,6 +52,8 @@ struct ContentView: View {
     @State private var recordingSessionLanguage: SessionTranscriptionLanguage?
     @State private var recordingSessionTitle: String?
     @State private var preRollPhase: PreRollPhase?
+    @State private var flatMicSeconds = 0
+    @State private var isRestartingCapture = false
 
     var body: some View {
         coreContent
@@ -228,13 +230,36 @@ struct ContentView: View {
     private func runSilenceTimer() async {
         while !Task.isCancelled {
             try? await Task.sleep(for: .seconds(1))
-            guard isRunning else { silenceSeconds = 0; continue }
+            guard isRunning else {
+                silenceSeconds = 0
+                flatMicSeconds = 0
+                continue
+            }
             guard !transcriptionEngine.isPaused else { continue }
             sessionElapsed += 1
             if audioLevel < 0.01 {
                 silenceSeconds += 1
                 if silenceSeconds >= settings.silenceTimeoutSeconds { stopSession() }
             }
+            if !transcriptionEngine.isMicMuted, micLevel < 0.02 {
+                flatMicSeconds += 1
+            } else {
+                flatMicSeconds = 0
+            }
+        }
+    }
+
+    private var showNoMicSignalHint: Bool {
+        isRunning && !transcriptionEngine.isPaused && !transcriptionEngine.isMicMuted && flatMicSeconds >= 10
+    }
+
+    private func restartCaptureFromUI() {
+        guard isRunning, !isRestartingCapture else { return }
+        Task {
+            isRestartingCapture = true
+            await transcriptionEngine.resetCapture(inputDeviceID: settings.inputDeviceID)
+            flatMicSeconds = 0
+            isRestartingCapture = false
         }
     }
 
@@ -243,15 +268,6 @@ struct ContentView: View {
     private var topBar: some View {
         HStack(spacing: 0) {
             HushSwedishHeaderWordmark(highlighted: logoFlash)
-                .onTapGesture(count: 3) {
-                    guard isRunning else { return }
-                    withAnimation(.easeIn(duration: 0.1)) { logoFlash = true }
-                    Task {
-                        await transcriptionEngine.resetCapture(inputDeviceID: settings.inputDeviceID)
-                        try? await Task.sleep(for: .milliseconds(400))
-                        withAnimation(.easeOut(duration: 0.3)) { logoFlash = false }
-                    }
-                }
 
             Spacer()
 
@@ -581,7 +597,10 @@ struct ContentView: View {
             onStop: stopSession,
             onPause: pauseFromMenu,
             onResume: resumeFromMenu,
-            isPreRollActive: preRollPhase != nil
+            isPreRollActive: preRollPhase != nil,
+            showNoMicSignalHint: showNoMicSignalHint,
+            isRestartingCapture: isRestartingCapture,
+            onRestartCapture: restartCaptureFromUI
         )
     }
 

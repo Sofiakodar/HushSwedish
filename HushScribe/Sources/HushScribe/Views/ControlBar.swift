@@ -34,6 +34,9 @@ struct ControlBar: View {
     let onPause: () -> Void
     let onResume: () -> Void
     var isPreRollActive: Bool = false
+    var showNoMicSignalHint: Bool = false
+    var isRestartingCapture: Bool = false
+    let onRestartCapture: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -109,6 +112,8 @@ struct ControlBar: View {
                         .padding(.horizontal, 16)
                         .padding(.bottom, 4)
                 }
+
+                captureRecoverySection
             } else {
                 VStack(spacing: 8) {
                     sessionNameField
@@ -169,6 +174,56 @@ struct ControlBar: View {
         }
         .background(.bar)
         .overlay(Divider(), alignment: .top)
+    }
+
+    private var captureRecoverySection: some View {
+        let emphasized = showNoMicSignalHint || isRestartingCapture
+
+        return Button(action: onRestartCapture) {
+            HStack(alignment: .top, spacing: 6) {
+                Group {
+                    if isRestartingCapture {
+                        ProgressView()
+                            .controlSize(.mini)
+                    } else {
+                        Image(systemName: showNoMicSignalHint ? "exclamationmark.triangle.fill" : "arrow.clockwise")
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                }
+                .frame(width: 14, height: 14)
+                .padding(.top, 1)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(isRestartingCapture ? "Restarting capture…" : "Restart capture if mic stays flat")
+                        .font(.system(size: 10, weight: emphasized ? .semibold : .medium))
+                        .foregroundStyle(emphasized ? Color.orange : Color.fg3)
+                        .multilineTextAlignment(.leading)
+
+                    if !isRestartingCapture, emphasized {
+                        Text("No mic signal detected — tap to reconnect audio.")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Color.orange.opacity(0.9))
+                            .multilineTextAlignment(.leading)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(emphasized ? Color.orange.opacity(0.1) : Color.fg3.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(emphasized ? Color.orange.opacity(0.35) : Color.clear, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isRestartingCapture)
+        .help("Restarts the mic and system-audio pipelines without stopping the session. Also if system audio or transcript stops updating.")
+        .padding(.horizontal, 16)
+        .padding(.bottom, 6)
     }
 
     private var sessionNameField: some View {
