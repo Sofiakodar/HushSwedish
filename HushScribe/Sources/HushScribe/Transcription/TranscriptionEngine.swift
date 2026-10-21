@@ -108,6 +108,9 @@ final class TranscriptionEngine {
     /// App bundle ID used when system audio capture was last started — needed for restarts.
     private var captureAppBundleID: String? = nil
     private var capturesSystemAudio = true
+    private var micStreamingTranscriber: StreamingTranscriber?
+    private var sysStreamingTranscriber: StreamingTranscriber?
+    private(set) var isDrainingSpeech = false
 
     /// Listens for default input device changes at the OS level.
     private var defaultDeviceListenerBlock: AudioObjectPropertyListenerBlock?
@@ -502,6 +505,7 @@ final class TranscriptionEngine {
                 }
             }
         )
+        micStreamingTranscriber = micTranscriber
         let reportMicError: @Sendable (String) -> Void = { [weak self] msg in
             Task { @MainActor in self?.lastError = msg }
         }
@@ -533,6 +537,7 @@ final class TranscriptionEngine {
                     }
                 }
             )
+            sysStreamingTranscriber = sysTranscriber
             let reportSysError: @Sendable (String) -> Void = { [weak self] msg in
                 Task { @MainActor in self?.lastError = msg }
             }
@@ -542,6 +547,8 @@ final class TranscriptionEngine {
                     reportSysError("System audio transcription failed — restart session")
                 }
             }
+        } else {
+            sysStreamingTranscriber = nil
         }
 
         assetStatus = "Transcribing (\(selectedModel.displayName))"
@@ -613,6 +620,7 @@ final class TranscriptionEngine {
                 }
             }
         )
+        micStreamingTranscriber = micTranscriber
         let reportMicError: @Sendable (String) -> Void = { [weak self] msg in
             Task { @MainActor in self?.lastError = msg }
         }
@@ -673,6 +681,7 @@ final class TranscriptionEngine {
                 }
             }
         )
+        micStreamingTranscriber = micTranscriber
         let reportMicError: @Sendable (String) -> Void = { [weak self] msg in
             Task { @MainActor in self?.lastError = msg }
         }
@@ -718,6 +727,7 @@ final class TranscriptionEngine {
                     }
                 }
             )
+            sysStreamingTranscriber = sysTranscriber
             let reportSysError: @Sendable (String) -> Void = { [weak self] msg in
                 Task { @MainActor in self?.lastError = msg }
             }
@@ -725,6 +735,8 @@ final class TranscriptionEngine {
                 let hadFatalError = await sysTranscriber.run(stream: sysStream)
                 if hadFatalError { reportSysError("System audio transcription failed — restart session") }
             }
+        } else {
+            sysStreamingTranscriber = nil
         }
 
         diagLog("[ENGINE-RESET] full capture reset complete")
@@ -797,17 +809,24 @@ final class TranscriptionEngine {
         }
     }
 
-    func pause() {
-        guard isRunning, !isPaused else { return }
+    func pause() async {
+        guard isRunning, !isPaused, !isDrainingSpeech else { return }
+        isDrainingSpeech = true
         micCapture.pause()
         systemCapture.pause()
+        assetStatus = "Finishing current speech..."
+        await micStreamingTranscriber?.flushPendingSpeech()
+        if capturesSystemAudio {
+            await sysStreamingTranscriber?.flushPendingSpeech()
+        }
         isPaused = true
+        isDrainingSpeech = false
         assetStatus = "Paused"
-        diagLog("[ENGINE] paused")
+        diagLog("[ENGINE] paused after flushing pending speech")
     }
 
     func resume() {
-        guard isRunning, isPaused else { return }
+        guard isRunning, isPaused, !isDrainingSpeech else { return }
         do {
             try micCapture.resume()
         } catch {
@@ -823,6 +842,19 @@ final class TranscriptionEngine {
     func stop() async {
         lastError = nil
         removeDefaultDeviceListener()
+
+        if isRunning, !isPaused {
+            micCapture.pause()
+            systemCapture.pause()
+            isDrainingSpeech = true
+            assetStatus = "Finishing current speech..."
+            await micStreamingTranscriber?.flushPendingSpeech()
+            if capturesSystemAudio {
+                await sysStreamingTranscriber?.flushPendingSpeech()
+            }
+            isDrainingSpeech = false
+        }
+
         micTask?.cancel()
         sysTask?.cancel()
         fileTask?.cancel()
@@ -836,7 +868,11 @@ final class TranscriptionEngine {
         await systemCapture.stop()
         micCapture.stop()
         currentMicDeviceID = 0
+        micStreamingTranscriber = nil
+        sysStreamingTranscriber = nil
         isRunning = false
+        isPaused = false
+        isDrainingSpeech = false
         assetStatus = "Ready"
     }
 

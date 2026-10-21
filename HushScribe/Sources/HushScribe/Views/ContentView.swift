@@ -706,8 +706,10 @@ struct ContentView: View {
     }
 
     private func pauseFromMenu() {
-        transcriptionEngine.pause()
-        recordingState.isPaused = true
+        Task {
+            await transcriptionEngine.pause()
+            recordingState.isPaused = transcriptionEngine.isPaused
+        }
     }
 
     private func resumeFromMenu() {

@@ -22,6 +22,15 @@ final class StreamingTranscriber: @unchecked Sendable {
         interleaved: false
     )!
 
+    private struct BufferedSpeech: Sendable {
+        var speechSamples: [Float] = []
+        var vadBuffer: [Float] = []
+        var isSpeaking = false
+    }
+
+    private let _buffered = OSAllocatedUnfairLock<BufferedSpeech>(uncheckedState: BufferedSpeech())
+    private let asrQueue = ASRSerialQueue()
+
     init(
         asrBackend: any ASRBackend,
         vadManager: VadManager,
@@ -44,6 +53,22 @@ final class StreamingTranscriber: @unchecked Sendable {
     private static let vadChunkSize = 4096
     /// Flush speech for transcription every ~6 seconds (96,000 samples at 16kHz).
     private static let flushInterval = 96_000
+    /// Minimum speech length for a normal VAD end (~0.5s at 16kHz).
+    private static let minSpeechSamples = 8000
+    /// Lower bar when user pauses/stops so short trailing phrases still transcribe (~0.25s).
+    private static let minTailSamples = 4000
+
+    /// Transcribe buffered speech after pause/stop (call after capture is paused).
+    func flushPendingSpeech(minSamples: Int = minTailSamples) async {
+        let segment = _buffered.withLock { buffer -> [Float] in
+            buffer.isSpeaking = false
+            let segment = buffer.speechSamples
+            buffer.speechSamples.removeAll(keepingCapacity: true)
+            return segment
+        }
+        guard segment.count >= minSamples else { return }
+        _ = await transcribeSegment(segment)
+    }
 
     /// Main loop: reads audio buffers, runs VAD, transcribes speech segments.
     /// - Parameter offsetTracker: optional tracker updated with total 16 kHz samples consumed,
@@ -52,9 +77,6 @@ final class StreamingTranscriber: @unchecked Sendable {
     @discardableResult
     func run(stream: AsyncStream<AVAudioPCMBuffer>, offsetTracker: FileOffsetTracker? = nil) async -> Bool {
         var vadState = await vadManager.makeStreamState()
-        var speechSamples: [Float] = []
-        var vadBuffer: [Float] = []
-        var isSpeaking = false
         var bufferCount = 0
         var consecutiveErrors = 0
         var totalVADSamples = 0
@@ -73,11 +95,17 @@ final class StreamingTranscriber: @unchecked Sendable {
                 diagLog("[\(speaker.rawValue)] samples: count=\(samples.count) max=\(maxVal)")
             }
 
-            vadBuffer.append(contentsOf: samples)
+            _buffered.withLock { $0.vadBuffer.append(contentsOf: samples) }
 
-            while vadBuffer.count >= Self.vadChunkSize {
-                let chunk = Array(vadBuffer.prefix(Self.vadChunkSize))
-                vadBuffer.removeFirst(Self.vadChunkSize)
+            while true {
+                let chunk: [Float]? = _buffered.withLock { buffer -> [Float]? in
+                    guard buffer.vadBuffer.count >= Self.vadChunkSize else { return nil }
+                    let chunk = Array(buffer.vadBuffer.prefix(Self.vadChunkSize))
+                    buffer.vadBuffer.removeFirst(Self.vadChunkSize)
+                    return chunk
+                }
+                guard let chunk else { break }
+
                 totalVADSamples += Self.vadChunkSize
                 offsetTracker?.set(totalVADSamples)
 
@@ -95,42 +123,51 @@ final class StreamingTranscriber: @unchecked Sendable {
                     if let event = result.event {
                         switch event.kind {
                         case .speechStart:
-                            isSpeaking = true
-                            speechSamples.removeAll(keepingCapacity: true)
+                            _buffered.withLock { buffer in
+                                buffer.isSpeaking = true
+                                buffer.speechSamples.removeAll(keepingCapacity: true)
+                            }
                             onSpeechStart?()
                             diagLog("[\(self.speaker.rawValue)] speech start")
 
                         case .speechEnd:
-                            isSpeaking = false
-                            diagLog("[\(self.speaker.rawValue)] speech end, samples=\(speechSamples.count)")
-                            if speechSamples.count > 8000 {
-                                let segment = speechSamples
-                                speechSamples.removeAll(keepingCapacity: true)
+                            _buffered.withLock { $0.isSpeaking = false }
+                            let segment = _buffered.withLock { buffer -> [Float] in
+                                let segment = buffer.speechSamples
+                                buffer.speechSamples.removeAll(keepingCapacity: true)
+                                return segment
+                            }
+                            diagLog("[\(self.speaker.rawValue)] speech end, samples=\(segment.count)")
+                            if segment.count > Self.minSpeechSamples {
                                 if await !transcribeSegment(segment) {
                                     consecutiveErrors += 1
                                     if consecutiveErrors > 10 { break outerLoop }
                                 } else {
                                     consecutiveErrors = 0
                                 }
-                            } else {
-                                speechSamples.removeAll(keepingCapacity: true)
                             }
+
                         }
                     }
 
-                    if isSpeaking {
-                        speechSamples.append(contentsOf: chunk)
+                    let shouldFlushMidSpeech = _buffered.withLock { buffer -> (Bool, [Float]) in
+                        guard buffer.isSpeaking else { return (false, []) }
+                        buffer.speechSamples.append(contentsOf: chunk)
+                        guard buffer.speechSamples.count >= Self.flushInterval else {
+                            return (false, [])
+                        }
+                        let segment = buffer.speechSamples
+                        buffer.speechSamples.removeAll(keepingCapacity: true)
+                        return (true, segment)
+                    }
 
-                        // Flush every ~3s for near-real-time output during continuous speech
-                        if speechSamples.count >= Self.flushInterval {
-                            let segment = speechSamples
-                            speechSamples.removeAll(keepingCapacity: true)
-                            if await !transcribeSegment(segment) {
-                                consecutiveErrors += 1
-                                if consecutiveErrors > 10 { break outerLoop }
-                            } else {
-                                consecutiveErrors = 0
-                            }
+                    if shouldFlushMidSpeech.0 {
+                        let segment = shouldFlushMidSpeech.1
+                        if await !transcribeSegment(segment) {
+                            consecutiveErrors += 1
+                            if consecutiveErrors > 10 { break outerLoop }
+                        } else {
+                            consecutiveErrors = 0
                         }
                     }
                 } catch {
@@ -141,15 +178,19 @@ final class StreamingTranscriber: @unchecked Sendable {
             }
         }
 
-        if speechSamples.count > 8000 {
-            _ = await transcribeSegment(speechSamples)
-        }
+        await flushPendingSpeech(minSamples: Self.minSpeechSamples)
 
         return consecutiveErrors > 10
     }
 
     /// Returns `true` on success, `false` on ASR error.
     private func transcribeSegment(_ samples: [Float]) async -> Bool {
+        await asrQueue.run {
+            await self.transcribeSegmentUnlocked(samples)
+        }
+    }
+
+    private func transcribeSegmentUnlocked(_ samples: [Float]) async -> Bool {
         do {
             let text = try await asrBackend.transcribe(samples, source: audioSource, onPartial: onPartial)
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -219,5 +260,12 @@ final class StreamingTranscriber: @unchecked Sendable {
             start: channelData[0],
             count: Int(outputBuffer.frameLength)
         ))
+    }
+}
+
+/// Ensures only one ASR request runs at a time (live loop + pause/stop flush).
+private actor ASRSerialQueue {
+    func run(_ body: @Sendable () async -> Bool) async -> Bool {
+        await body()
     }
 }
