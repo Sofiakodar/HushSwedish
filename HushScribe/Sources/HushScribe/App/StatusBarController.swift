@@ -224,6 +224,13 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
         popover?.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         NSApp.activate(ignoringOtherApps: true)
+
+        Task { @MainActor in
+            await transcriptionEngine.warmUpForRecording(
+                sessionLanguage: settings.sessionTranscriptionLanguage,
+                sysVadThreshold: settings.sysVadThreshold
+            )
+        }
     }
 
     // MARK: - NSMenuDelegate

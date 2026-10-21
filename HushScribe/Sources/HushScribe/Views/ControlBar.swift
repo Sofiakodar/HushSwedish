@@ -33,6 +33,7 @@ struct ControlBar: View {
     let onStop: () -> Void
     let onPause: () -> Void
     let onResume: () -> Void
+    var isPreRollActive: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -134,7 +135,7 @@ struct ControlBar: View {
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(NSColor.separatorColor)))
                     }
                     .buttonStyle(.plain)
-                    .disabled(!modelsReady)
+                    .disabled(!modelsReady || isPreRollActive)
                     .keyboardShortcut("r", modifiers: .command)
 
                     Button(action: onStartVoiceMemo) {
@@ -158,7 +159,7 @@ struct ControlBar: View {
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(NSColor.separatorColor)))
                     }
                     .buttonStyle(.plain)
-                    .disabled(!modelsReady)
+                    .disabled(!modelsReady || isPreRollActive)
                     .keyboardShortcut("r", modifiers: [.command, .shift])
                 }
                 }

@@ -51,6 +51,7 @@ struct ContentView: View {
     @State private var showFilePicker = false
     @State private var recordingSessionLanguage: SessionTranscriptionLanguage?
     @State private var recordingSessionTitle: String?
+    @State private var preRollPhase: PreRollPhase?
 
     var body: some View {
         coreContent
@@ -85,6 +86,16 @@ struct ContentView: View {
                     withAnimation(.easeOut(duration: 0.3)) { logoFlash = false }
                 }
             }
+            .task(id: warmUpKey) {
+                await transcriptionEngine.warmUpForRecording(
+                    sessionLanguage: settings.sessionTranscriptionLanguage,
+                    sysVadThreshold: settings.sysVadThreshold
+                )
+            }
+    }
+
+    private var warmUpKey: String {
+        "\(settings.transcriptionModel.rawValue)-\(settings.sessionTranscriptionLanguage.rawValue)"
     }
 
     private var coreContent: some View {
@@ -106,6 +117,7 @@ struct ContentView: View {
         }
         .overlay { if showOnboarding { OnboardingView(isPresented: $showOnboarding, settings: settings).transition(.opacity) } }
         .overlay { if showSpeakerNaming { speakerNamingOverlay } }
+        .overlay { if let phase = preRollPhase { PreRollOverlay(phase: phase) } }
         .fileImporter(
             isPresented: $showFilePicker,
             allowedContentTypes: [.audio, .movie, .mpeg4Movie, .quickTimeMovie],
@@ -515,7 +527,8 @@ struct ContentView: View {
             onStartVoiceMemo: { startSession(type: .voiceMemo) },
             onStop: stopSession,
             onPause: pauseFromMenu,
-            onResume: resumeFromMenu
+            onResume: resumeFromMenu,
+            isPreRollActive: preRollPhase != nil
         )
     }
 
@@ -583,7 +596,7 @@ struct ContentView: View {
     // MARK: - Actions
 
     private func startSession(type: SessionType) {
-        if settings.notificationSoundEnabled { NSSound(named: .init("Tink"))?.play() }
+        guard preRollPhase == nil else { return }
         guard settings.hasAcknowledgedDisclaimer else {
             transcriptionEngine.lastError = "Please complete the setup wizard and acknowledge the legal disclaimer before recording."
             return
@@ -624,7 +637,18 @@ struct ContentView: View {
         let titleForSession = customTitle.isEmpty ? nil : customTitle
 
         Task {
+            for count in stride(from: 3, through: 1, by: -1) {
+                preRollPhase = .countdown(count)
+                try? await Task.sleep(for: .seconds(1))
+            }
+            preRollPhase = .preparing
+
             transcriptionEngine.lastError = nil
+            await transcriptionEngine.warmUpForRecording(
+                sessionLanguage: sessionLanguage,
+                sysVadThreshold: settings.sysVadThreshold
+            )
+
             await sessionStore.startSession()
             do {
                 try await transcriptLogger.startSession(
@@ -637,14 +661,10 @@ struct ContentView: View {
             } catch {
                 await sessionStore.endSession()
                 transcriptionEngine.lastError = error.localizedDescription
+                preRollPhase = nil
                 return
             }
-            activeSessionType = type
-            detectedAppName = resolvedAppName
-            recordingSessionLanguage = sessionLanguage
-            recordingSessionTitle = titleForSession
-            recordingState.isRecording = true
-            recordingState.isPaused = false
+
             if type == .callCapture {
                 await transcriptionEngine.start(
                     sessionLanguage: sessionLanguage,
@@ -660,6 +680,22 @@ struct ContentView: View {
                     captureSystemAudio: false
                 )
             }
+
+            guard transcriptionEngine.isRunning else {
+                await sessionStore.endSession()
+                preRollPhase = nil
+                return
+            }
+
+            activeSessionType = type
+            detectedAppName = resolvedAppName
+            recordingSessionLanguage = sessionLanguage
+            recordingSessionTitle = titleForSession
+            recordingState.isRecording = true
+            recordingState.isPaused = false
+            preRollPhase = nil
+
+            if settings.notificationSoundEnabled { NSSound(named: .init("Tink"))?.play() }
         }
     }
 
@@ -815,6 +851,48 @@ struct ContentView: View {
                 text: last.text,
                 timestamp: last.timestamp
             ))
+        }
+    }
+}
+
+// MARK: - Pre-roll countdown
+
+private enum PreRollPhase: Equatable {
+    case countdown(Int)
+    case preparing
+}
+
+private struct PreRollOverlay: View {
+    let phase: PreRollPhase
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.55)
+                .ignoresSafeArea()
+            VStack(spacing: 16) {
+                switch phase {
+                case .countdown(let n):
+                    Text("\(n)")
+                        .font(.system(size: 88, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
+                    Text("Get ready — start speaking after “Transcribing…”")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                case .preparing:
+                    Text("Transcribing…")
+                        .font(.system(size: 40, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                    ProgressView()
+                        .controlSize(.large)
+                        .tint(.white)
+                    Text("Starting capture")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.85))
+                }
+            }
         }
     }
 }

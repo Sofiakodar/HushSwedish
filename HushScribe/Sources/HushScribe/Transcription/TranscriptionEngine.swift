@@ -311,12 +311,51 @@ final class TranscriptionEngine {
             return retargeted
         }
         let modelID = selectedModel.whisperModelID!
-        assetStatus = "Downloading \(selectedModel.displayName)..."
+        let cached = FileManager.default.fileExists(atPath: Self.whisperCacheURL(for: modelID).path)
+        assetStatus = cached
+            ? "Loading \(selectedModel.displayName)..."
+            : "Downloading \(selectedModel.displayName)..."
         diagLog("[ENGINE-WK] loading WhisperKit model \(modelID)...")
         let wk = try await WhisperKit(model: modelID)
         let backend = WhisperKitASRBackend(wk, languageCode: code)
         whisperKitBackend = backend
         return backend
+    }
+
+    private func ensureVADManagers(sysVadThreshold: Double) async throws {
+        guard micVadManager == nil || sysVadManager == nil else { return }
+        assetStatus = "Loading VAD model..."
+        diagLog("[ENGINE-1b] loading VAD model...")
+        let micVad = try await VadManager()
+        self.micVadManager = micVad
+        let sysVad = try await VadManager(config: VadConfig(defaultThreshold: Float(sysVadThreshold)))
+        self.sysVadManager = sysVad
+    }
+
+    /// Loads VAD + Whisper into memory when the selected Whisper model is already on disk.
+    func warmUpForRecording(sessionLanguage: SessionTranscriptionLanguage, sysVadThreshold: Double = 0.92) async {
+        guard !isRunning else { return }
+        guard selectedModel.isWhisperKit, isModelDownloaded(selectedModel) else { return }
+        if whisperKitBackend != nil, micVadManager != nil, sysVadManager != nil {
+            if whisperKitBackend?.languageCode != sessionLanguage.whisperLanguageCode {
+                do {
+                    _ = try await resolveWhisperBackend(sessionLanguage: sessionLanguage)
+                } catch {
+                    diagLog("[ENGINE-WARM] language retarget failed: \(error.localizedDescription)")
+                }
+            }
+            assetStatus = "Ready"
+            return
+        }
+        do {
+            try await ensureVADManagers(sysVadThreshold: sysVadThreshold)
+            _ = try await resolveWhisperBackend(sessionLanguage: sessionLanguage)
+            assetStatus = "Ready"
+            diagLog("[ENGINE-WARM] Whisper ready for recording")
+        } catch {
+            diagLog("[ENGINE-WARM] \(error.localizedDescription)")
+            assetStatus = "Ready"
+        }
     }
 
     private func resolveSFSpeechBackend(sessionLanguage: SessionTranscriptionLanguage) throws -> SFSpeechBackend {
@@ -348,24 +387,15 @@ final class TranscriptionEngine {
         // Load ASR backend and VAD managers based on selected model.
         let asrBackend: any ASRBackend
         if selectedModel.isWhisperKit {
-            // WhisperKit path: load VAD first (independent of FluidAudio model bundle),
-            // then load WhisperKit.
-            if micVadManager == nil || sysVadManager == nil {
-                assetStatus = "Loading VAD model..."
-                diagLog("[ENGINE-1b] loading VAD model...")
-                do {
-                    let micVad = try await VadManager()
-                    self.micVadManager = micVad
-                    let sysVad = try await VadManager(config: VadConfig(defaultThreshold: Float(sysVadThreshold)))
-                    self.sysVadManager = sysVad
-                } catch {
-                    let msg = "Failed to load VAD: \(error.localizedDescription)"
-                    diagLog("[ENGINE-VAD-FAIL] \(msg)")
-                    lastError = msg
-                    assetStatus = "Ready"
-                    isRunning = false
-                    return
-                }
+            do {
+                try await ensureVADManagers(sysVadThreshold: sysVadThreshold)
+            } catch {
+                let msg = "Failed to load VAD: \(error.localizedDescription)"
+                diagLog("[ENGINE-VAD-FAIL] \(msg)")
+                lastError = msg
+                assetStatus = "Ready"
+                isRunning = false
+                return
             }
             do {
                 asrBackend = try await resolveWhisperBackend(sessionLanguage: sessionLanguage)
@@ -386,22 +416,15 @@ final class TranscriptionEngine {
                 isRunning = false
                 return
             }
-            if micVadManager == nil || sysVadManager == nil {
-                assetStatus = "Loading VAD model..."
-                diagLog("[ENGINE-1b] loading VAD model...")
-                do {
-                    let micVad = try await VadManager()
-                    self.micVadManager = micVad
-                    let sysVad = try await VadManager(config: VadConfig(defaultThreshold: Float(sysVadThreshold)))
-                    self.sysVadManager = sysVad
-                } catch {
-                    let msg = "Failed to load VAD: \(error.localizedDescription)"
-                    diagLog("[ENGINE-VAD-FAIL] \(msg)")
-                    lastError = msg
-                    assetStatus = "Ready"
-                    isRunning = false
-                    return
-                }
+            do {
+                try await ensureVADManagers(sysVadThreshold: sysVadThreshold)
+            } catch {
+                let msg = "Failed to load VAD: \(error.localizedDescription)"
+                diagLog("[ENGINE-VAD-FAIL] \(msg)")
+                lastError = msg
+                assetStatus = "Ready"
+                isRunning = false
+                return
             }
             diagLog("[ENGINE-SF] initializing Apple Speech recognizer...")
             do {
