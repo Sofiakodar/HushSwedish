@@ -99,7 +99,7 @@ struct ContentView: View {
         }
         .frame(minWidth: 480, maxWidth: 480, minHeight: 360)
         .background(Color.bg0)
-        .confirmationDialog("Quit HushScribe?", isPresented: $showQuitConfirmation, titleVisibility: .visible) {
+        .confirmationDialog("Quit \(AppIdentity.displayName)?", isPresented: $showQuitConfirmation, titleVisibility: .visible) {
             Button("Quit", role: .destructive) { NSApplication.shared.terminate(nil) }
             Button("Cancel", role: .cancel) {}
         }

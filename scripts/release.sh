@@ -12,12 +12,12 @@ changelog_for_version() {
 }
 
 # --- 1. Configuration ---
-APP_NAME="HushScribe"
-IDENTIFIER="com.drcursor.hushscribe"
+APP_NAME="HushSwedish"
+IDENTIFIER="com.hushswedish.app"
 # The exact string from 'security find-identity'
 DEVELOPER_ID=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | awk '{print $2}')
 # The name you gave to 'notarytool store-credentials'
-PROFILE_NAME="HushScribe"
+PROFILE_NAME="HushSwedish"
 
 # Paths
 ROOT_DIR="$(pwd)"
@@ -26,7 +26,7 @@ APP_BUNDLE="$ROOT_DIR/dist/$APP_NAME.app"
 CONTENTS="$APP_BUNDLE/Contents"
 DMG_NAME="dist/${APP_NAME}.dmg"
 ENTITLEMENTS="$SWIFT_DIR/Sources/HushScribe/HushScribe.entitlements"
-BINARY_PATH=".build/release/HushScribe"
+BINARY_PATH=".build/release/HushSwedish"
 APP_DIR="$ROOT_DIR/dist/$APP_NAME.app"
 ICON_PATH="$SWIFT_DIR/Sources/HushScribe/Assets/AppIcon.icns"
 CASK="$ROOT_DIR/Casks/hushscribe.rb"
@@ -35,7 +35,7 @@ mkdir -p "$APP_DIR/Contents/MacOS"
 
 cd "$SWIFT_DIR"
 swift build -c release 2>&1
-BINARY_PATH=".build/release/HushScribe"
+BINARY_PATH=".build/release/HushSwedish"
 
 if [[ ! -f "$BINARY_PATH" ]]; then
   echo "Build failed: binary not found at $BINARY_PATH"
@@ -59,7 +59,7 @@ echo "MLX metallib compiled: $(ls -lh "$METAL_WORK/mlx.metallib" | awk '{print $
 echo "--- Step 2: Creating .app Structure ---"
 mkdir -p "$CONTENTS/MacOS"
 mkdir -p "$CONTENTS/Resources"
-cp "$BINARY_PATH" "$CONTENTS/MacOS/HushScribe"
+cp "$BINARY_PATH" "$CONTENTS/MacOS/HushSwedish"
 cp "$METAL_WORK/mlx.metallib" "$CONTENTS/MacOS/mlx.metallib"
 rm -rf "$METAL_WORK"
 
@@ -105,7 +105,7 @@ if [[ "$1" == "test" ]]; then
     exit 0
 fi
 
-VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" dist/HushScribe.app/Contents/Info.plist)
+VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" dist/HushSwedish.app/Contents/Info.plist)
 
 # Check gh release list
 if gh release list | grep -q -w v"$VERSION"; then
@@ -143,7 +143,7 @@ if [[ -z "$RELEASE_NOTES" ]]; then
 fi
 gh release create v$VERSION \
     dist/HushScribe.dmg \
-    --title "HushScribe v$VERSION" \
+    --title "HushSwedish v$VERSION" \
     --notes "$RELEASE_NOTES"
 echo "Created GH release"
 

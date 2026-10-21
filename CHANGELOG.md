@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- **Rebrand to HushSwedish.** Bundle ID `com.hushswedish.app` (separate permissions and preferences from HushScribe). Default transcripts go to `~/Documents/HushSwedish/`. ASR model caches unchanged (shared with HushScribe on disk).
 - **Session language (Swedish / English).** Choose language in the control bar before recording. Whisper uses explicit `sv` / `en` decoding (no auto-detect); Apple Speech uses a matching locale. Choice is remembered and saved in transcript frontmatter as `transcription_language`.
 - **Transcription model choice no longer requires Parakeet.** Call Capture and Voice Memo are enabled based on the model selected in Settings → Models. Whisper and Apple Speech can be used without downloading Parakeet; only Parakeet shows the main-window download prompt when it is the active model.
 

@@ -254,8 +254,10 @@ final class AppSettings {
         let storedStopDelay = defaults.integer(forKey: "meetingStopDelaySecs")
         self.meetingStopDelaySecs = storedStopDelay > 0 ? storedStopDelay : 5
         self.preferredSettingsTab = 0
-        self.vaultMeetingsPath = defaults.string(forKey: "vaultMeetingsPath") ?? NSString("~/Documents/HushScribe/Meetings").expandingTildeInPath
-        self.vaultVoicePath = defaults.string(forKey: "vaultVoicePath") ?? NSString("~/Documents/HushScribe/Voice").expandingTildeInPath
+        self.vaultMeetingsPath = defaults.string(forKey: "vaultMeetingsPath")
+            ?? NSString(string: AppIdentity.defaultMeetingsVaultPath).expandingTildeInPath
+        self.vaultVoicePath = defaults.string(forKey: "vaultVoicePath")
+            ?? NSString(string: AppIdentity.defaultVoiceVaultPath).expandingTildeInPath
         self.hasAcknowledgedDisclaimer = defaults.bool(forKey: "hasAcknowledgedDisclaimer")
         self.notificationSoundEnabled = defaults.bool(forKey: "notificationSoundEnabled")
         let storedMode = defaults.string(forKey: "mainWindowMode") ?? ""
@@ -287,8 +289,8 @@ final class AppSettings {
         autoMeetingDetect = false
         meetingDetectDelaySecs = 3
         meetingStopDelaySecs = 5
-        vaultMeetingsPath = NSString("~/Documents/HushScribe/Meetings").expandingTildeInPath
-        vaultVoicePath = NSString("~/Documents/HushScribe/Voice").expandingTildeInPath
+        vaultMeetingsPath = NSString(string: AppIdentity.defaultMeetingsVaultPath).expandingTildeInPath
+        vaultVoicePath = NSString(string: AppIdentity.defaultVoiceVaultPath).expandingTildeInPath
         hasAcknowledgedDisclaimer = false
         mainWindowMode = .attached
         hideFromScreenShare = true

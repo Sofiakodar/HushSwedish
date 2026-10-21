@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 @main
-struct HushScribeApp: App {
+struct HushSwedishApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var settings: AppSettings
     @State private var recordingState: RecordingState

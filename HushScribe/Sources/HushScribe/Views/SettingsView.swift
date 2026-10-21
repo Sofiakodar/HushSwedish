@@ -62,7 +62,7 @@ private struct MainSettingsTab: View {
                     Text("Reset All Settings…")
                         .font(.system(size: 12))
                 }
-                Text("Removes all stored preferences and resets HushScribe to its defaults. This cannot be undone.")
+                Text("Removes all stored preferences and resets \(AppIdentity.displayName) to its defaults. This cannot be undone.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
@@ -760,7 +760,7 @@ private struct AboutSettingsTab: View {
                             .frame(width: 48, height: 48)
                     }
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("HushScribe")
+                        Text(AppIdentity.displayName)
                             .font(.title2.bold())
                         Text("Version \(appVersion)")
                             .font(.system(size: 12))
@@ -774,11 +774,11 @@ private struct AboutSettingsTab: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Attribution")
                         .font(.headline)
-                    Text("HushScribe is a fork of [Tome](https://github.com/Gremble-io/Tome) by [Gremble-io](https://github.com/Gremble-io), which itself started from [OpenGranola](https://github.com/yazinsai/OpenGranola), substantially extended with additional features. Code is generated with help of Claude Code.")
+                    Text("\(AppIdentity.displayName) is a personal fork of [HushScribe](https://github.com/drcursor/HushScribe) (based on [Tome](https://github.com/Gremble-io/Tome) by Gremble-io), with Swedish-focused transcription improvements.")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Maintained by [drcursor](https://github.com/drcursor) · [github.com/drcursor/HushScribe](https://github.com/drcursor/HushScribe)")
+                    Text("Upstream: [HushScribe](https://github.com/drcursor/HushScribe) · Bundle ID \(AppIdentity.bundleIdentifier)")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }

@@ -232,13 +232,13 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private func buildMenuItems(into menu: NSMenu) {
         guard let settings, let recordingState, let meetingMonitor else { return }
 
-        let title = NSMenuItem(title: "HushScribe", action: nil, keyEquivalent: "")
+        let title = NSMenuItem(title: AppIdentity.displayName, action: nil, keyEquivalent: "")
         title.isEnabled = false
         menu.addItem(title)
         menu.addItem(.separator())
 
-        menu.addItem(makeItem("Show HushScribe", action: #selector(showHushScribe)))
-        menu.addItem(makeItem("Hide HushScribe", action: #selector(hideHushScribe)))
+        menu.addItem(makeItem("Show \(AppIdentity.displayName)", action: #selector(showHushScribe)))
+        menu.addItem(makeItem("Hide \(AppIdentity.displayName)", action: #selector(hideHushScribe)))
         menu.addItem(.separator())
 
         if !recordingState.isRecording {
@@ -273,7 +273,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let quitItem = makeItem("Quit HushScribe", action: #selector(quitApp))
+        let quitItem = makeItem("Quit \(AppIdentity.displayName)", action: #selector(quitApp))
         quitItem.keyEquivalent = "q"
         menu.addItem(quitItem)
     }

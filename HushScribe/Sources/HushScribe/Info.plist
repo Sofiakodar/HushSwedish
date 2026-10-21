@@ -3,32 +3,30 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>HushScribe</string>
+	<string>HushSwedish</string>
 	<key>CFBundleExecutable</key>
-	<string>HushScribe</string>
+	<string>HushSwedish</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.drcursor.hushscribe</string>
+	<string>com.hushswedish.app</string>
 	<key>CFBundleName</key>
-	<string>HushScribe</string>
+	<string>HushSwedish</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>3.5.0</string>
 	<key>CFBundleVersion</key>
 	<string>3.5.0</string>
-	<key>LSApplicationCategoryType</key>
-	<string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>HushScribe needs microphone access to transcribe your voice in real-time during conversations.</string>
+	<string>HushSwedish needs microphone access to transcribe your voice in real-time during conversations.</string>
 	<key>NSScreenCaptureUsageDescription</key>
-	<string>HushScribe needs screen capture permission to capture system audio from other participants.</string>
+	<string>HushSwedish needs screen capture permission to capture system audio from other participants.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>HushScribe uses Apple's on-device speech recognition to transcribe your voice without sending audio to any server.</string>
+	<string>HushSwedish uses Apple's on-device speech recognition to transcribe your voice without sending audio to any server.</string>
 </dict>
 </plist>

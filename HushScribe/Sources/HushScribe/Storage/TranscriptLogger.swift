@@ -94,7 +94,7 @@ tags:
   - \(logTag)
   - status/inbox
   - \(sourceTag)
-  - source/hushscribe
+  - \(AppIdentity.transcriptSourceTag)
 ---
 
 # \(fileLabel) — \(dateStr) \(timeStr)

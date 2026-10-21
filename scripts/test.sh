@@ -1,1 +1,1 @@
-rm dist/HushScribe.app/Contents/MacOS/HushScribe; scripts/release.sh test ; defaults delete com.drcursor.hushscribe ; dist/HushScribe.app/Contents/MacOS/HushScribe
+rm dist/HushSwedish.app/Contents/MacOS/HushSwedish; scripts/release.sh test ; defaults delete com.hushswedish.app ; dist/HushSwedish.app/Contents/MacOS/HushSwedish

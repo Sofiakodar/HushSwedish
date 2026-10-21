@@ -16,7 +16,7 @@ struct OnboardingView: View {
     private let steps: [(icon: String, title: String, body: String)] = [
         (
             "waveform.circle",
-            "Welcome to HushScribe",
+            "Welcome to \(AppIdentity.displayName)",
             "A lightweight meeting transcription tool that captures your conversations — all running locally on your Mac. No API keys, no cloud services."
         ),
         (
@@ -27,7 +27,7 @@ struct OnboardingView: View {
         (
             "waveform.badge.plus",
             "Auto-Record Meetings",
-            "Enable \"Auto-record meetings\" from the menu bar. HushScribe watches for Zoom, Teams, Slack, and other conferencing apps — recording starts only when a call is actually in progress (mic active), and stops when the call ends. Note: browser-based meetings (e.g. Google Meet or Teams in a web browser) are not detected."
+            "Enable \"Auto-record meetings\" from the menu bar. \(AppIdentity.displayName) watches for Zoom, Teams, Slack, and other conferencing apps — recording starts only when a call is actually in progress (mic active), and stops when the call ends. Note: browser-based meetings (e.g. Google Meet or Teams in a web browser) are not detected."
         ),
         (
             "sparkles",
@@ -37,17 +37,17 @@ struct OnboardingView: View {
         (
             "lock.shield",
             "Permissions",
-            "HushScribe needs a few permissions to work. Click each one to grant access."
+            "\(AppIdentity.displayName) needs a few permissions to work. Click each one to grant access."
         ),
         (
             "exclamationmark.shield",
             "Legal Disclaimer",
-            "Recording laws vary by jurisdiction. In many places, all parties must consent before a conversation may be recorded. It is your sole responsibility to ensure you comply with applicable local laws before using HushScribe to record any conversation."
+            "Recording laws vary by jurisdiction. In many places, all parties must consent before a conversation may be recorded. It is your sole responsibility to ensure you comply with applicable local laws before using \(AppIdentity.displayName) to record any conversation."
         ),
         (
             "menubar.rectangle",
             "Lives in Your Menu Bar",
-            "HushScribe runs quietly in the background. Use \"Show HushScribe\" from the menu bar icon any time to bring this window back."
+            "\(AppIdentity.displayName) runs quietly in the background. Use \"Show \(AppIdentity.displayName)\" from the menu bar icon any time to bring this window back."
         ),
     ]
 
