@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HushScribe — Local Meeting Transcription for macOS</title>
-  <meta name="description" content="Local-only meeting transcription for macOS. No cloud, no API keys. Your data never leaves your Mac." />
+  <title>HushSwedish — Local transcription for macOS (Swedish &amp; English)</title>
+  <meta name="description" content="HushSwedish — local-only meeting transcription for macOS, tuned for Swedish and English. Fork of HushScribe. No cloud, no API keys." />
   <link rel="icon" href="favicon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -556,8 +556,8 @@
 <nav aria-label="Main navigation">
   <div class="nav-inner">
     <a class="nav-logo" href="#">
-      <img src="logo.svg" alt="HushScribe" />
-      HushScribe
+      <img src="https://raw.githubusercontent.com/Sofiakodar/HushSwedish/main/assets/logo.svg" alt="HushSwedish" />
+      HushSwedish
     </a>
     <div class="nav-sep"></div>
     <ul class="nav-links">
@@ -567,7 +567,7 @@
       <li><a href="#models">Models</a></li>
       <li><a href="#output">Output</a></li>
 
-      <li><a href="https://github.com/drcursor/HushScribe" target="_blank" rel="noopener">
+      <li><a href="https://github.com/Sofiakodar/HushSwedish" target="_blank" rel="noopener">
         <svg class="gh" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
         GitHub
       </a></li>
@@ -579,27 +579,27 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-left">
-    <img src="logo.svg" alt="HushScribe" class="hero-logo r" />
+    <img src="https://raw.githubusercontent.com/Sofiakodar/HushSwedish/main/assets/logo.svg" alt="HushSwedish" class="hero-logo r" />
     <div class="hero-eyebrow r d1">
       <span></span>
-      Runs entirely on-device
+      Swedish &amp; English · on-device
     </div>
     <h1 class="r d2">
       Your meetings.<br />
-      <span class="accent">Your data.</span>
+      <span class="accent">Your language.</span>
     </h1>
     <p class="hero-sub r d3">
-      Keep a local processed transcription of your meetings. 
+      Local transcription with session language control and Whisper Large v3 by default — built for Swedish meetings without sending audio to the cloud.
     </p>
-    <p class="hero-sub r d3">No cloud, no API keys, no accounts.<br />
+    <p class="hero-sub r d3">Independent fork of <a href="https://github.com/drcursor/HushScribe" target="_blank" rel="noopener" style="text-decoration:underline;text-underline-offset:3px;">HushScribe</a>. No accounts, no API keys.<br />
       Your voice never leaves your Mac.
     </p>
     <div class="hero-actions r d4">
       <a href="#install" class="btn-dark">
-        Install HushScribe
+        Build HushSwedish
         <span class="btn-icon">↓</span>
       </a>
-      <a href="https://github.com/drcursor/HushScribe" class="btn-ghost" target="_blank" rel="noopener">
+      <a href="https://github.com/Sofiakodar/HushSwedish" class="btn-ghost" target="_blank" rel="noopener">
         <svg class="gh" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
         View source
       </a>
@@ -607,10 +607,10 @@
   </div>
   <div class="hero-right r d3">
     <div class="hero-screenshot">
-      <img src="https://raw.githubusercontent.com/drcursor/HushScribe/main/assets/main.png" alt="HushScribe transcription" />
+      <img src="https://raw.githubusercontent.com/Sofiakodar/HushSwedish/main/assets/main.png" alt="HushSwedish main window" />
     </div>
     <div class="hero-screenshot-sm">
-      <img src="https://raw.githubusercontent.com/drcursor/HushScribe/main/assets/settings.png" alt="HushScribe settings" />
+      <img src="https://raw.githubusercontent.com/Sofiakodar/HushSwedish/main/assets/settings.png" alt="HushSwedish settings" />
     </div>
   </div>
 </section>
@@ -678,12 +678,12 @@
   <ul class="features-list">
     <li class="feat-item r d1">
       <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
-      <span class="feat-title">Multilingual transcription</span>
-      <span class="feat-desc">Parakeet-TDT v3 — 25 European languages, auto-detected, runs on Apple Silicon's Neural Engine. Fastest transcription option.</span>
+      <span class="feat-title">Session language (SV / EN)</span>
+      <span class="feat-desc">Pick Swedish or English before you record. Whisper uses explicit language decoding (transcribe, not translate). Saved in transcript frontmatter as <code>transcription_language</code>.</span>
     </li>
     <li class="feat-item r d2">
       <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-      <span class="feat-title">Multiple transcription models</span>      <span class="feat-desc">Parakeet (default), WhisperKit Base, WhisperKit Large v3, or Apple Speech. Switch at any time. All on-device.</span>
+      <span class="feat-title">Multiple transcription models</span>      <span class="feat-desc">Whisper Large v3 (default for new installs), Parakeet-TDT v3, Whisper Base, or Apple Speech. Parakeet optional — not required to start recording.</span>
 
     </li>
     <li class="feat-item r d3">
@@ -745,14 +745,14 @@
     <div class="eyebrow">Comparison</div>
   </div>
   <div class="r d1" style="margin-top:48px;overflow-x:auto;">
-    <p class="section-sub">How does HushScribe compare to other similar solutions?</p><br/>
+    <p class="section-sub">How does HushSwedish compare to other similar solutions?</p><br/>
     <table style="width:100%;border-collapse:collapse;font-size:14px;">
       <thead>
         <tr>
           <th style="text-align:left;padding:14px 20px;border-bottom:2px solid rgba(0,0,0,0.10);font-size:11px;font-weight:600;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink2);">Feature</th>
           <th style="text-align:left;padding:14px 20px;border-bottom:2px solid rgba(0,0,0,0.10);font-size:11px;font-weight:600;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink2);">Granola</th>
           <th style="text-align:left;padding:14px 20px;border-bottom:2px solid rgba(0,0,0,0.10);font-size:11px;font-weight:600;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink2);">OpenOats</th>
-          <th style="text-align:left;padding:14px 20px;border-bottom:2px solid rgba(0,0,0,0.10);font-size:11px;font-weight:600;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink2);">HushScribe</th>
+          <th style="text-align:left;padding:14px 20px;border-bottom:2px solid rgba(0,0,0,0.10);font-size:11px;font-weight:600;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink2);">HushSwedish</th>
         </tr>
       </thead>
       <tbody>
@@ -805,7 +805,7 @@
         </thead>
         <tbody>
           <tr>
-            <td style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.07);font-weight:600;color:var(--ink);white-space:nowrap;"><a href="https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2" target="_blank" rel="noopener" style="color:inherit;">Parakeet-TDT v3</a> <span style="font-size:10px;font-weight:600;color:var(--accent);background:rgba(200,79,27,0.08);padding:2px 7px;border-radius:99px;margin-left:6px;">default</span></td>
+            <td style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.07);font-weight:600;color:var(--ink);white-space:nowrap;"><a href="https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2" target="_blank" rel="noopener" style="color:inherit;">Parakeet-TDT v3</a></td>
             <td style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.07);color:var(--ink2);"><a href="https://github.com/FluidInference/FluidAudio" target="_blank" rel="noopener" style="color:inherit;">FluidAudio</a></td>
             <td style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.07);color:var(--ink2);white-space:nowrap;">~600 MB</td>
           </tr>
@@ -815,7 +815,7 @@
             <td style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.07);color:var(--ink2);white-space:nowrap;">~150 MB</td>
           </tr>
           <tr>
-            <td style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.07);font-weight:600;color:var(--ink);white-space:nowrap;"><a href="https://huggingface.co/openai/whisper-large-v3" target="_blank" rel="noopener" style="color:inherit;">Whisper Large v3</a></td>
+            <td style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.07);font-weight:600;color:var(--ink);white-space:nowrap;"><a href="https://huggingface.co/openai/whisper-large-v3" target="_blank" rel="noopener" style="color:inherit;">Whisper Large v3</a> <span style="font-size:10px;font-weight:600;color:var(--accent);background:rgba(200,79,27,0.08);padding:2px 7px;border-radius:99px;margin-left:6px;">default</span></td>
             <td style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.07);color:var(--ink2);"><a href="https://github.com/argmaxinc/WhisperKit" target="_blank" rel="noopener" style="color:inherit;">WhisperKit</a></td>
             <td style="padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.07);color:var(--ink2);white-space:nowrap;">~1.5 GB</td>
           </tr>
@@ -884,7 +884,7 @@
     <div class="r d2">
       <div class="out-label">On-device AI summary</div>
       <div class="frame">
-        <img src="https://raw.githubusercontent.com/drcursor/HushScribe/main/assets/summary.png" alt="AI summary view" />
+        <img src="https://raw.githubusercontent.com/Sofiakodar/HushSwedish/main/assets/summary.png" alt="HushSwedish AI summary" />
       </div>
     </div>
     <div class="r d3">
@@ -918,28 +918,30 @@ service. Action items assigned to Marcus.</span>
 <section class="section" id="install" style="padding-top:0;">
   <div class="r">
     <div class="eyebrow">Install</div>
-    <p class="section-sub">Requires macOS 26+ and Apple Silicon. No account, no license key, no recurring fees.</p>
+    <p class="section-sub">Requires macOS 26+ and Apple Silicon. Build from source — no Homebrew cask for this fork yet.</p>
   </div>
   <div class="install-wrap">
     <div class="install-block r d2">
       <div class="install-inner">
         <div class="install-tab">
-          <span class="tab-label active">Homebrew (recommended)</span>
+          <span class="tab-label active">Build from source</span>
         </div>
         <div class="install-body">
-          <pre>brew tap drcursor/hushscribe https://github.com/drcursor/HushScribe
-brew install --cask hushscribe</pre>
-          <p class="install-note">To update: <code>brew upgrade --cask hushscribe</code></p>
+          <pre>git clone git@github.com:Sofiakodar/HushSwedish.git
+cd HushSwedish
+scripts/release.sh test
+open dist/HushSwedish.app</pre>
+          <p class="install-note">Official upstream app: <a href="https://github.com/drcursor/HushScribe" target="_blank" rel="noopener" style="text-decoration:underline;">HushScribe</a> (Homebrew cask <code>hushscribe</code>).</p>
         </div>
       </div>
     </div>
     <div class="manual-row r d3">
       <div>
-        <div class="manual-label">Manual install</div>
-        <div class="manual-sub">Download the DMG, open it, drag HushScribe to <code>/Applications</code>.</div>
+        <div class="manual-label">Repository</div>
+        <div class="manual-sub">Source, issues, and releases on GitHub. MIT license — fork of HushScribe / Tome.</div>
       </div>
-      <a href="https://github.com/drcursor/HushScribe/releases/latest" class="btn-ghost" target="_blank" rel="noopener" style="white-space:nowrap;flex-shrink:0;">
-        Download DMG
+      <a href="https://github.com/Sofiakodar/HushSwedish" class="btn-ghost" target="_blank" rel="noopener" style="white-space:nowrap;flex-shrink:0;">
+        Open GitHub
       </a>
     </div>
   </div>
@@ -948,18 +950,18 @@ brew install --cask hushscribe</pre>
 <!-- LEGAL -->
 <div class="legal r">
   <p>
-    <strong>Legal notice:</strong> Laws regarding recording conversations vary by jurisdiction. In many places, all parties must consent before a conversation may be recorded. It is your sole responsibility to ensure compliance with applicable local laws. The authors of HushScribe accept no liability for unlawful use.
+    <strong>Legal notice:</strong> Laws regarding recording conversations vary by jurisdiction. In many places, all parties must consent before a conversation may be recorded. It is your sole responsibility to ensure compliance with applicable local laws. The maintainers of HushSwedish accept no liability for unlawful use.
   </p>
 </div>
 
 <!-- FOOTER -->
 <footer class="r">
   <div class="footer-left">
-    <img src="logo.svg" alt="HushScribe" />
-    HushScribe — MIT License
+    <img src="https://raw.githubusercontent.com/Sofiakodar/HushSwedish/main/assets/logo.svg" alt="HushSwedish" />
+    HushSwedish — MIT · fork of HushScribe
   </div>
-  <a href="https://github.com/drcursor/HushScribe" target="_blank" rel="noopener">
-    <svg class="gh" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:middle;margin-right:5px;"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>github.com/drcursor/HushScribe
+  <a href="https://github.com/Sofiakodar/HushSwedish" target="_blank" rel="noopener">
+    <svg class="gh" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:middle;margin-right:5px;"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>github.com/Sofiakodar/HushSwedish
   </a>
 </footer>
 
