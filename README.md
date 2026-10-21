@@ -44,12 +44,22 @@ Every step runs locally. Transcription uses on-device models (Parakeet-TDT v3, W
   <img src="assets/settings.png" height="280" alt="HushSwedish — settings" style="vertical-align:middle" />
 </p>
 
-## What’s different from upstream HushScribe
+## Changes from original HushScribe
 
-- **Session language (Swedish / English).** Pick **SV** or **EN** in the control bar before you record. WhisperKit uses explicit `sv` / `en` decoding (transcribe, not translate). Apple Speech uses a matching locale. The choice is remembered and stored in transcript frontmatter as `transcription_language`.
-- **Whisper Swedish fix.** Whisper backends pass language into `DecodingOptions` so Swedish is not treated as English by default.
-- **No Parakeet required.** Recording is gated on the model you select in **Settings → Models**. You can use Whisper Large v3 or Apple Speech without downloading Parakeet; only Parakeet shows the main-window download prompt when it is the active model.
-- **Separate app identity.** Own bundle ID, preferences, permissions, and default vault paths — safe to install next to official HushScribe.
+Feature and behavior differences in this fork (everything else matches upstream unless noted):
+
+- **Default transcription model.** New installs default to **Whisper Large v3** (upstream defaults to Parakeet-TDT v3).
+- **Session language (Swedish / English).** Pick **SV** or **EN** in the control bar before Call Capture or Voice Memo. WhisperKit uses explicit `sv` / `en` decoding (transcribe, not translate). Apple Speech uses a matching locale. Default session language is **Swedish**. Stored in transcript frontmatter as `transcription_language`.
+- **Whisper language fix.** Whisper backends pass language into `DecodingOptions` so Swedish is not treated as English by default.
+- **No Parakeet required to record.** Recording is gated on the model you select in **Settings → Models**. Whisper or Apple Speech works without downloading Parakeet; Parakeet’s download prompt only appears when Parakeet is the active model.
+- **Name your transcript.** Optional **Name** field before you record; files save as `2026-10-21_Your_title.md` (or `2026-10-21_HH-mm-ss_Call_Recording.md` if left blank).
+- **Pause / stop finishes the last sentence.** Pause and stop drain buffered speech through the ASR before halting capture, so trailing words are transcribed instead of dropped (very short tails may still be skipped).
+- **Voice memo without screen capture.** Voice Memo uses the mic only and does not start system-audio capture, so it should not ask for screen-recording permission. Call Capture still needs screen & system audio for “Them”.
+- **Transcript Viewer dedupe.** Browse sidebar no longer lists the same file twice when Meetings and Voice vault paths are the same folder.
+- **Separate app identity.** **HushSwedish** branding, bundle ID `com.hushswedish.app`, own preferences and permissions, default vaults under `~/Documents/HushSwedish/` — safe to install next to official HushScribe. ASR model caches on disk are still **shared** with HushScribe (no duplicate Whisper download).
+- **Local builds.** `scripts/release.sh test` ad-hoc-signs when no Developer ID is present; screen-recording permission may need to be re-granted after each rebuild.
+
+Full write-up: [docs/changes-from-hushscribe.md](docs/changes-from-hushscribe.md).
 
 ## Installing
 
