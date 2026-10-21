@@ -126,6 +126,11 @@ final class AppSettings {
         }
     }
 
+    /// Optional name for the next recording (used in transcript filename).
+    var sessionTranscriptNameDraft: String {
+        didSet { UserDefaults.standard.set(sessionTranscriptNameDraft, forKey: "sessionTranscriptNameDraft") }
+    }
+
     /// Stored as the AudioDeviceID integer. 0 means "use system default".
     var inputDeviceID: AudioDeviceID {
         didSet { UserDefaults.standard.set(Int(inputDeviceID), forKey: "inputDeviceID") }
@@ -228,6 +233,7 @@ final class AppSettings {
         self.transcriptionLocale = defaults.string(forKey: "transcriptionLocale") ?? "en-US"
         let storedSessionLang = defaults.string(forKey: "lastSessionTranscriptionLanguage") ?? ""
         self.sessionTranscriptionLanguage = SessionTranscriptionLanguage(rawValue: storedSessionLang) ?? .swedish
+        self.sessionTranscriptNameDraft = defaults.string(forKey: "sessionTranscriptNameDraft") ?? ""
         self.inputDeviceID = AudioDeviceID(defaults.integer(forKey: "inputDeviceID"))
         let storedTimeout = defaults.integer(forKey: "silenceTimeoutSeconds")
         self.silenceTimeoutSeconds = storedTimeout > 0 ? storedTimeout : 120
@@ -277,6 +283,7 @@ final class AppSettings {
     func reset() {
         transcriptionLocale = "en-US"
         sessionTranscriptionLanguage = .swedish
+        sessionTranscriptNameDraft = ""
         inputDeviceID = 0
         silenceTimeoutSeconds = 120
         transcriptionModel = .defaultSelection

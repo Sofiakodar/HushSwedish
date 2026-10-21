@@ -16,3 +16,4 @@ build/
 *.spec
 HushScribe/HushScribe.dmg
 todo.md
+docs/local-privacy-audit.md

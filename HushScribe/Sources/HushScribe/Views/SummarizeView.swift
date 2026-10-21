@@ -1025,6 +1025,61 @@ private struct ParsedBubble: View {
     }
 }
 
+// MARK: - Vault transcript listing
+
+private func normalizedVaultDirectory(_ path: String) -> String {
+    guard !path.isEmpty else { return "" }
+    let expanded = (path as NSString).expandingTildeInPath
+    return URL(fileURLWithPath: expanded).standardizedFileURL.path
+}
+
+/// Lists transcript `.md` files from meetings + voice vaults, each file once (same folder or symlinks).
+private func mergedTranscriptDirectoryEntries(meetingsPath: String, voicePath: String) -> [TranscriptDirectoryEntry] {
+    let meetingsNorm = normalizedVaultDirectory(meetingsPath)
+    let voiceNorm = normalizedVaultDirectory(voicePath)
+    var paths = [meetingsPath]
+    if !voicePath.isEmpty, voiceNorm != meetingsNorm {
+        paths.append(voicePath)
+    }
+
+    var seen = Set<String>()
+    var result: [TranscriptDirectoryEntry] = []
+    for path in paths {
+        for entry in transcriptDirectoryEntries(in: path) {
+            let key = entry.url.standardizedFileURL.path
+            guard seen.insert(key).inserted else { continue }
+            result.append(entry)
+        }
+    }
+    return result.sorted { $0.modifiedDate > $1.modifiedDate }
+}
+
+private struct TranscriptDirectoryEntry {
+    let url: URL
+    let modifiedDate: Date
+    let hasSummary: Bool
+}
+
+private func transcriptDirectoryEntries(in path: String) -> [TranscriptDirectoryEntry] {
+    guard !path.isEmpty else { return [] }
+    let expanded = (path as NSString).expandingTildeInPath
+    let dir = URL(fileURLWithPath: expanded)
+    let keys: [URLResourceKey] = [.contentModificationDateKey]
+    guard let contents = try? FileManager.default.contentsOfDirectory(
+        at: dir, includingPropertiesForKeys: keys, options: .skipsHiddenFiles
+    ) else { return [] }
+    return contents
+        .filter { $0.pathExtension == "md" && !$0.lastPathComponent.hasSuffix(" summary.md") }
+        .compactMap { url -> TranscriptDirectoryEntry? in
+            let values = try? url.resourceValues(forKeys: Set(keys))
+            let date = values?.contentModificationDate ?? .distantPast
+            let summaryURL = url.deletingLastPathComponent()
+                .appendingPathComponent("\(url.deletingPathExtension().lastPathComponent) summary.md")
+            let hasSummary = FileManager.default.fileExists(atPath: summaryURL.path)
+            return TranscriptDirectoryEntry(url: url, modifiedDate: date, hasSummary: hasSummary)
+        }
+}
+
 // MARK: - Library Sidebar
 
 private struct LibrarySidebar: View {
@@ -1039,11 +1094,12 @@ private struct LibrarySidebar: View {
     @State private var deleteArmedURL: URL? = nil
 
     struct SidebarFile: Identifiable {
-        let id = UUID()
         let url: URL
         let name: String
         let modifiedDate: Date
         let hasSummary: Bool
+
+        var id: URL { url }
     }
 
     private var filteredFiles: [SidebarFile] {
@@ -1169,29 +1225,14 @@ private struct LibrarySidebar: View {
     }
 
     private func loadFiles() {
-        var files: [SidebarFile] = []
-        files += transcriptFiles(in: meetingsPath)
-        files += transcriptFiles(in: voicePath)
-        allFiles = files.sorted { $0.modifiedDate > $1.modifiedDate }
-    }
-
-    private func transcriptFiles(in path: String) -> [SidebarFile] {
-        guard !path.isEmpty else { return [] }
-        let dir = URL(fileURLWithPath: path)
-        let keys: [URLResourceKey] = [.contentModificationDateKey]
-        guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: dir, includingPropertiesForKeys: keys, options: .skipsHiddenFiles
-        ) else { return [] }
-        return contents
-            .filter { $0.pathExtension == "md" && !$0.lastPathComponent.hasSuffix(" summary.md") }
-            .compactMap { url -> SidebarFile? in
-                let values = try? url.resourceValues(forKeys: Set(keys))
-                let date = values?.contentModificationDate ?? .distantPast
-                let summaryURL = url.deletingLastPathComponent()
-                    .appendingPathComponent("\(url.deletingPathExtension().lastPathComponent) summary.md")
-                let hasSummary = FileManager.default.fileExists(atPath: summaryURL.path)
-                return SidebarFile(url: url, name: url.deletingPathExtension().lastPathComponent,
-                                   modifiedDate: date, hasSummary: hasSummary)
+        allFiles = mergedTranscriptDirectoryEntries(meetingsPath: meetingsPath, voicePath: voicePath)
+            .map { entry in
+                SidebarFile(
+                    url: entry.url,
+                    name: entry.url.deletingPathExtension().lastPathComponent,
+                    modifiedDate: entry.modifiedDate,
+                    hasSummary: entry.hasSummary
+                )
             }
     }
 }
@@ -1300,11 +1341,12 @@ struct TranscriptPickerView: View {
     }
 
     struct TranscriptFile: Identifiable {
-        let id = UUID()
         let url: URL
         let name: String
         let modifiedDate: Date
         let fileSize: Int
+
+        var id: URL { url }
     }
 
     private var filteredFiles: [(file: TranscriptFile, isMeeting: Bool)] {
@@ -1358,7 +1400,7 @@ struct TranscriptPickerView: View {
                 .padding()
             } else {
                 List {
-                    ForEach(filteredFiles, id: \.file.id) { entry in
+                    ForEach(filteredFiles, id: \.file.url) { entry in
                         Button { onSelect(entry.file.url); dismiss() } label: {
                             HStack(spacing: 10) {
                                 Image(systemName: entry.isMeeting ? "person.2" : "mic")
@@ -1399,13 +1441,16 @@ struct TranscriptPickerView: View {
     }
 
     private func loadFiles() {
+        let meetingsNorm = normalizedVaultDirectory(meetingsPath)
+        let voiceNorm = normalizedVaultDirectory(voicePath)
         meetingFiles = transcriptFiles(in: meetingsPath)
-        voiceFiles = transcriptFiles(in: voicePath)
+        voiceFiles = meetingsNorm == voiceNorm ? [] : transcriptFiles(in: voicePath)
     }
 
     private func transcriptFiles(in path: String) -> [TranscriptFile] {
         guard !path.isEmpty else { return [] }
-        let dir = URL(fileURLWithPath: path)
+        let expanded = (path as NSString).expandingTildeInPath
+        let dir = URL(fileURLWithPath: expanded)
         let keys: [URLResourceKey] = [.contentModificationDateKey, .fileSizeKey]
         guard let contents = try? FileManager.default.contentsOfDirectory(
             at: dir, includingPropertiesForKeys: keys, options: .skipsHiddenFiles

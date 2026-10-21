@@ -211,7 +211,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             let hosting = NSHostingController(rootView: contentView)
             hosting.sizingOptions = []
             let p = NSPopover()
-            p.contentSize = NSSize(width: 480, height: 460)
+            p.contentSize = NSSize(width: 480, height: 500)
             p.contentViewController = hosting
             p.behavior = .transient
             popover = p

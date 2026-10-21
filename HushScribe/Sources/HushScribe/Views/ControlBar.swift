@@ -19,7 +19,9 @@ struct ControlBar: View {
     let modelsReady: Bool
     let activeSessionType: SessionType?
     @Binding var sessionLanguage: SessionTranscriptionLanguage
+    @Binding var sessionTranscriptName: String
     let recordingSessionLanguage: SessionTranscriptionLanguage?
+    let recordingSessionTitle: String?
     let transcriptionModel: TranscriptionModel
     let audioLevel: Float
     let detectedApp: String?
@@ -108,6 +110,7 @@ struct ControlBar: View {
                 }
             } else {
                 VStack(spacing: 8) {
+                    sessionNameField
                     sessionLanguagePicker
                     HStack(spacing: 10) {
                     Button(action: onStartCallCapture) {
@@ -167,6 +170,25 @@ struct ControlBar: View {
         .overlay(Divider(), alignment: .top)
     }
 
+    private var sessionNameField: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            TextField("Name (optional)", text: $sessionTranscriptName)
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 11))
+                .disabled(!modelsReady)
+
+            Text("Saved as \(transcriptNameExample)_Your_name.md in the vault.")
+                .font(.system(size: 9))
+                .foregroundStyle(.tertiary)
+        }
+    }
+
+    private var transcriptNameExample: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        return fmt.string(from: Date())
+    }
+
     private var sessionLanguagePicker: some View {
         VStack(alignment: .leading, spacing: 4) {
             Picker("Language", selection: $sessionLanguage) {
@@ -192,6 +214,9 @@ struct ControlBar: View {
             languageSuffix = " · \(recordingSessionLanguage.displayName)"
         } else {
             languageSuffix = ""
+        }
+        if let title = recordingSessionTitle, !title.isEmpty {
+            return "\(title)\(languageSuffix)"
         }
         switch activeSessionType {
         case .callCapture:

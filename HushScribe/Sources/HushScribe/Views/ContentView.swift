@@ -50,6 +50,7 @@ struct ContentView: View {
     @State private var speakerNamingContinuation: CheckedContinuation<[String: String], Never>?
     @State private var showFilePicker = false
     @State private var recordingSessionLanguage: SessionTranscriptionLanguage?
+    @State private var recordingSessionTitle: String?
 
     var body: some View {
         coreContent
@@ -501,7 +502,9 @@ struct ContentView: View {
             modelsReady: transcriptionEngine.canStartRecording,
             activeSessionType: activeSessionType,
             sessionLanguage: $settings.sessionTranscriptionLanguage,
+            sessionTranscriptName: $settings.sessionTranscriptNameDraft,
             recordingSessionLanguage: recordingSessionLanguage,
+            recordingSessionTitle: recordingSessionTitle,
             transcriptionModel: settings.transcriptionModel,
             audioLevel: audioLevel,
             detectedApp: detectedAppName,
@@ -617,6 +620,8 @@ struct ContentView: View {
         }
 
         let sessionLanguage = settings.sessionTranscriptionLanguage
+        let customTitle = settings.sessionTranscriptNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let titleForSession = customTitle.isEmpty ? nil : customTitle
 
         Task {
             transcriptionEngine.lastError = nil
@@ -626,7 +631,8 @@ struct ContentView: View {
                     sourceApp: sourceApp,
                     vaultPath: outputPath,
                     sessionType: type,
-                    transcriptionLanguage: sessionLanguage
+                    transcriptionLanguage: sessionLanguage,
+                    customTitle: titleForSession
                 )
             } catch {
                 await sessionStore.endSession()
@@ -636,6 +642,7 @@ struct ContentView: View {
             activeSessionType = type
             detectedAppName = resolvedAppName
             recordingSessionLanguage = sessionLanguage
+            recordingSessionTitle = titleForSession
             recordingState.isRecording = true
             recordingState.isPaused = false
             if type == .callCapture {
@@ -669,6 +676,8 @@ struct ContentView: View {
         bannerDismissTask?.cancel()
         activeSessionType = .fileImport
         let sessionLanguage = settings.sessionTranscriptionLanguage
+        let customTitle = settings.sessionTranscriptNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let titleForSession = customTitle.isEmpty ? nil : customTitle
 
         Task {
             transcriptionEngine.lastError = nil
@@ -678,7 +687,8 @@ struct ContentView: View {
                     sourceApp: url.deletingPathExtension().lastPathComponent,
                     vaultPath: settings.vaultVoicePath,
                     sessionType: .fileImport,
-                    transcriptionLanguage: sessionLanguage
+                    transcriptionLanguage: sessionLanguage,
+                    customTitle: titleForSession
                 )
             } catch {
                 await sessionStore.endSession()
@@ -687,6 +697,7 @@ struct ContentView: View {
                 return
             }
             recordingSessionLanguage = sessionLanguage
+            recordingSessionTitle = titleForSession
             recordingState.isRecording = true
             recordingState.isPaused = false
             await transcriptionEngine.startFileTranscription(url: url, sessionLanguage: sessionLanguage)
@@ -710,6 +721,7 @@ struct ContentView: View {
         activeSessionType = nil
         detectedAppName = nil
         recordingSessionLanguage = nil
+        recordingSessionTitle = nil
         silenceSeconds = 0
         recordingState.isRecording = false
         recordingState.isPaused = false

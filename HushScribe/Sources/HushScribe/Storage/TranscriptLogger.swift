@@ -31,7 +31,8 @@ actor TranscriptLogger {
         sourceApp: String,
         vaultPath: String,
         sessionType: SessionType = .callCapture,
-        transcriptionLanguage: SessionTranscriptionLanguage? = nil
+        transcriptionLanguage: SessionTranscriptionLanguage? = nil,
+        customTitle: String? = nil
     ) throws {
         self.sourceApp = sourceApp
         self.sessionStartTime = Date()
@@ -46,8 +47,6 @@ actor TranscriptLogger {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
         let now = sessionStartTime!
-        let fileFmt = DateFormatter()
-        fileFmt.dateFormat = "yyyy-MM-dd HH-mm-ss"
 
         let dateFmt = DateFormatter()
         dateFmt.dateFormat = "yyyy-MM-dd"
@@ -70,8 +69,16 @@ actor TranscriptLogger {
             fileLabel = "Call Recording"; noteType = "meeting"; logTag = "log/meeting"; sourceTag = "source/meeting"
         }
 
-        let filename = "\(fileFmt.string(from: now)) \(fileLabel).md"
-        currentFilePath = directory.appendingPathComponent(filename)
+        let trimmedTitle = customTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let titleForFilename = (trimmedTitle?.isEmpty == false) ? trimmedTitle : nil
+        let headingTitle = titleForFilename ?? fileLabel
+
+        let filename = TranscriptFilename.makeFilename(
+            date: now,
+            customTitle: titleForFilename,
+            defaultLabel: fileLabel
+        )
+        currentFilePath = TranscriptFilename.uniqueURL(in: directory, filename: filename)
 
         let languageLine: String
         if let transcriptionLanguage {
@@ -87,7 +94,7 @@ created: "\(dateStr)"
 time: "\(timeStr)"
 duration: "00:00"
 source_app: "\(sourceApp)"
-source_file: "\(filename)"
+source_file: "\(currentFilePath!.lastPathComponent)"
 \(languageLine)attendees: []
 context: ""
 tags:
@@ -97,7 +104,7 @@ tags:
   - \(AppIdentity.transcriptSourceTag)
 ---
 
-# \(fileLabel) — \(dateStr) \(timeStr)
+# \(headingTitle) — \(dateStr) \(timeStr)
 
 **Duration:** 00:00 | **Speakers:** 0
 
@@ -230,16 +237,15 @@ tags:
 
         // Update lastSessionFilePath if the file was renamed
         if !lastSessionContext.isEmpty {
-            let truncated = String(lastSessionContext.prefix(50))
-                .replacingOccurrences(of: "/", with: "-")
-                .replacingOccurrences(of: ":", with: "-")
-                .trimmingCharacters(in: .whitespaces)
-            let dateFmt = DateFormatter()
-            dateFmt.dateFormat = "yyyy-MM-dd HH-mm-ss"
-            let datePrefix = dateFmt.string(from: startTime)
-            let newFilename = "\(datePrefix) \(truncated).md"
-            let newPath = filePath.deletingLastPathComponent().appendingPathComponent(newFilename)
-            lastSessionFilePath = newPath
+            let slug = TranscriptFilename.slug(from: String(lastSessionContext.prefix(80)))
+            if !slug.isEmpty {
+                let dateFmt = DateFormatter()
+                dateFmt.dateFormat = "yyyy-MM-dd"
+                let datePrefix = dateFmt.string(from: startTime)
+                let newFilename = "\(datePrefix)_\(slug).md"
+                let dir = filePath.deletingLastPathComponent()
+                lastSessionFilePath = TranscriptFilename.uniqueURL(in: dir, filename: newFilename)
+            }
         }
 
         let savedPath = lastSessionFilePath
@@ -283,23 +289,21 @@ tags:
         // Context-based file rename
         var finalPath = filePath
         if !context.isEmpty {
-            let truncated = String(context.prefix(50))
-                .replacingOccurrences(of: "/", with: "-")
-                .replacingOccurrences(of: ":", with: "-")
-                .trimmingCharacters(in: .whitespaces)
+            let slug = TranscriptFilename.slug(from: String(context.prefix(80)))
+            if !slug.isEmpty {
+                let dateFmt = DateFormatter()
+                dateFmt.dateFormat = "yyyy-MM-dd"
+                let datePrefix = dateFmt.string(from: startTime)
+                let newFilename = "\(datePrefix)_\(slug).md"
+                let dir = filePath.deletingLastPathComponent()
+                let newPath = TranscriptFilename.uniqueURL(in: dir, filename: newFilename)
 
-            let dateFmt = DateFormatter()
-            dateFmt.dateFormat = "yyyy-MM-dd HH-mm-ss"
-            let datePrefix = dateFmt.string(from: startTime)
-            let newFilename = "\(datePrefix) \(truncated).md"
-            let newPath = filePath.deletingLastPathComponent().appendingPathComponent(newFilename)
+                if let range = content.range(of: #"source_file: ".*""#, options: .regularExpression) {
+                    content.replaceSubrange(range, with: "source_file: \"\(newPath.lastPathComponent)\"")
+                }
 
-            // Update source_file in content
-            if let range = content.range(of: #"source_file: ".*""#, options: .regularExpression) {
-                content.replaceSubrange(range, with: "source_file: \"\(newFilename)\"")
+                finalPath = newPath
             }
-
-            finalPath = newPath
         }
 
         // Atomic write
