@@ -34,7 +34,11 @@ CASK="$ROOT_DIR/Casks/hushscribe.rb"
 mkdir -p "$APP_DIR/Contents/MacOS"
 
 cd "$SWIFT_DIR"
-swift build -c release 2>&1
+set -o pipefail
+if ! swift build -c release 2>&1; then
+  echo "Build failed"
+  exit 1
+fi
 BINARY_PATH=".build/release/HushSwedish"
 
 if [[ ! -f "$BINARY_PATH" ]]; then
@@ -47,13 +51,39 @@ rm -f "$DMG_NAME"
 rm -rf "$APP_BUNDLE"
 
 echo "--- Step 1.5: Compiling MLX Metal shaders ---"
+# Xcode 26 ships `metal` as a stub. The real compiler is a separate component, and
+# xcrun only finds it when TOOLCHAINS names that component.
+if ! xcrun -sdk macosx metal --version >/dev/null 2>&1; then
+  METAL_TOOLCHAIN_ID=$(xcodebuild -showComponent MetalToolchain 2>/dev/null | awk -F': ' '/Toolchain Identifier/{print $2; exit}')
+  if [[ -n "$METAL_TOOLCHAIN_ID" ]] && TOOLCHAINS="$METAL_TOOLCHAIN_ID" xcrun -sdk macosx metal --version >/dev/null 2>&1; then
+    export TOOLCHAINS="$METAL_TOOLCHAIN_ID"
+  else
+    echo "The Metal toolchain is not installed, so mlx.metallib cannot be built."
+    echo "Without it, loading a summary model quits the app."
+    echo "Install it, then rerun this script:"
+    echo "  xcodebuild -downloadComponent MetalToolchain"
+    exit 1
+  fi
+fi
 METAL_DIR=".build/checkouts/mlx-swift/Source/Cmlx/mlx-generated/metal"
 METAL_WORK=$(mktemp -d)
-for f in "$METAL_DIR"/*.metal "$METAL_DIR"/steel/attn/kernels/*.metal; do
+shopt -s nullglob
+metal_sources=("$METAL_DIR"/*.metal "$METAL_DIR"/steel/attn/kernels/*.metal)
+if [[ ${#metal_sources[@]} -eq 0 ]]; then
+  echo "No MLX metal sources found in $METAL_DIR"
+  exit 1
+fi
+for f in "${metal_sources[@]}"; do
   name=$(basename "$f" .metal)
-  xcrun -sdk macosx metal -std=metal3.1 -I"$METAL_DIR" -c "$f" -o "$METAL_WORK/$name.air" 2>/dev/null
+  if ! xcrun -sdk macosx metal -std=metal3.1 -I"$METAL_DIR" -c "$f" -o "$METAL_WORK/$name.air"; then
+    echo "Failed to compile Metal shader: $f"
+    exit 1
+  fi
 done
-xcrun -sdk macosx metallib -o "$METAL_WORK/mlx.metallib" "$METAL_WORK"/*.air 2>/dev/null
+if ! xcrun -sdk macosx metallib -o "$METAL_WORK/mlx.metallib" "$METAL_WORK"/*.air; then
+  echo "Failed to link mlx.metallib"
+  exit 1
+fi
 echo "MLX metallib compiled: $(ls -lh "$METAL_WORK/mlx.metallib" | awk '{print $5}')"
 
 echo "--- Step 2: Creating .app Structure ---"

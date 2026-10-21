@@ -87,6 +87,19 @@ Default session language for new installs: **Swedish**.
 
 ---
 
+## Summary model download
+
+**Upstream:** Settings → Models → AI Summaries downloads a model by loading it into MLX immediately. MLX calls `exit` when `mlx.metallib` is missing, so the app closes with no crash report once the download finishes. The “downloaded” check also looks in `~/Library/Caches/models/`, while swift-transformers writes the files under `~/Documents/huggingface/models/`.
+
+**HushSwedish:**
+
+- **Download fetches the weight files only.** The model is loaded later, when you generate a summary.
+- If the download fails (network, or a gated Gemma repo), the error is shown on that model row instead of quitting the app.
+- “Downloaded” and **Show Models in Finder** use **`~/Documents/huggingface/models/`**, the folder the downloader actually uses. That cache is still shared with HushScribe.
+- **`scripts/release.sh`** compiles **`mlx.metallib`** and places it next to the binary. The script fails if the Metal compiler is missing, instead of shipping an app that quits on the first summary load. On Xcode 26, install the compiler with `xcodebuild -downloadComponent MetalToolchain`.
+
+---
+
 ## Transcript Viewer
 
 - **Duplicate entries fix:** if Meetings and Voice vault paths point at the **same folder**, the browse sidebar no longer lists every file twice (dedupe by path; skip double scan when paths are equal).
@@ -105,7 +118,7 @@ Default session language for new installs: **Swedish**.
 
 These are **not** fork-specific changes; they remain as in upstream unless you change settings:
 
-- On-device **AI summaries** (Apple NL, Qwen3, Gemma 3, Gemma 4).
+- On-device **AI summary models** (Apple NL, Qwen3, Gemma 3, Gemma 4). Download behavior differs; see above.
 - **Auto-record meetings** for native meeting apps (not browser tabs).
 - **Speaker diarization** after the session.
 - **Transcribe file** import pipeline.
@@ -135,5 +148,6 @@ Rough order of fork-specific commits:
 6. Optional transcript names; Transcript Viewer dedupe  
 7. Screen capture permission handling for local builds  
 8. Flush in-flight speech on pause/stop  
+9. Summary model download no longer quits the app  
 
 For exact diffs, use `git log` on this repository from the first fork commit through `HEAD`.

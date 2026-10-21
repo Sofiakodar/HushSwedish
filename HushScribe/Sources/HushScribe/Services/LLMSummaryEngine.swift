@@ -74,14 +74,19 @@ private let sharedTokenizerLoader: any TokenizerLoader = AutoTokenizerLoader()
 // MARK: - Engine
 
 /// Manages download, lifecycle, and inference for LLM-based summary models.
-/// Models are cached in the standard HuggingFace Hub cache (~/.cache/huggingface/hub/).
+/// Weights are cached by swift-transformers at ~/Documents/huggingface/models/.
 @Observable
 @MainActor
 final class LLMSummaryEngine {
     static let shared = LLMSummaryEngine()
 
+    /// Same globs `loadModelContainer` uses, so a download contains everything inference needs.
+    private static let downloadPatterns = ["*.safetensors", "*.json", "*.jinja"]
+
     var downloadingModel: SummaryModel? = nil
     var downloadProgress: Double = 0
+    var downloadError: String? = nil
+    var downloadErrorModel: SummaryModel? = nil
     var isGenerating: Bool = false
     var generationStatus: String = ""
 
@@ -91,11 +96,15 @@ final class LLMSummaryEngine {
 
     // MARK: - Model management
 
+    /// Directory swift-transformers writes for this repo: ~/Documents/huggingface/models/<org>/<name>/
+    static func modelDirectory(repoID: String) -> URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            .appendingPathComponent("huggingface/models/\(repoID)")
+    }
+
     func isModelDownloaded(_ model: SummaryModel) -> Bool {
         guard let repoID = model.hfRepoID else { return false }
-        // swift-transformers (used by mlx-swift-lm) caches at ~/Library/Caches/models/<org>/<name>/
-        let configPath = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("models/\(repoID)/config.json")
+        let configPath = Self.modelDirectory(repoID: repoID).appendingPathComponent("config.json")
         return FileManager.default.fileExists(atPath: configPath.path)
     }
 
@@ -103,29 +112,34 @@ final class LLMSummaryEngine {
         guard let repoID = model.hfRepoID else { return }
         downloadingModel = model
         downloadProgress = 0
+        downloadError = nil
+        downloadErrorModel = nil
         defer { downloadingModel = nil; downloadProgress = 0 }
 
         do {
-            let config = ModelConfiguration(id: repoID)
-            _ = try await loadModelContainer(
-                from: sharedDownloader,
-                using: sharedTokenizerLoader,
-                configuration: config
+            // Fetch the files only. Loading the weights here initializes MLX, and an MLX
+            // failure calls exit() — that is what quit the app at the end of a download.
+            _ = try await sharedDownloader.download(
+                id: repoID,
+                revision: nil,
+                matching: Self.downloadPatterns,
+                useLatest: false
             ) { [weak self] progress in
+                let fraction = progress.fractionCompleted
                 Task { @MainActor in
-                    self?.downloadProgress = progress.fractionCompleted
+                    self?.downloadProgress = fraction
                 }
             }
         } catch {
+            downloadError = error.localizedDescription
+            downloadErrorModel = model
             print("[LLMSummaryEngine] Download failed: \(error)")
         }
     }
 
     func removeModel(_ model: SummaryModel) {
         guard let repoID = model.hfRepoID else { return }
-        let cachePath = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("models/\(repoID)")
-        try? FileManager.default.removeItem(at: cachePath)
+        try? FileManager.default.removeItem(at: Self.modelDirectory(repoID: repoID))
         if loadedContainer?.model == model { loadedContainer = nil }
     }
 
@@ -176,8 +190,9 @@ final class LLMSummaryEngine {
             using: sharedTokenizerLoader,
             configuration: config
         ) { [weak self] progress in
+            let fraction = progress.fractionCompleted
             Task { @MainActor in
-                self?.generationStatus = "Loading… \(Int(progress.fractionCompleted * 100))%"
+                self?.generationStatus = "Loading… \(Int(fraction * 100))%"
             }
         }
         loadedContainer = (model: model, container: container)

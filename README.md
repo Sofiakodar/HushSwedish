@@ -39,12 +39,14 @@ HushSwedish is a **personal fork** of [HushScribe](https://github.com/drcursor/H
 | App identity | HushScribe | **HushSwedish**, separate prefs & vaults |
 | Default vaults | HushScribe folders | **`~/Documents/HushSwedish/Meetings`** & **`Voice`** |
 | Model cache on disk | Shared system paths | **Same** — no second Whisper download if you use both apps |
+| Summary model download | Loads the model into MLX as it downloads | **Downloads the files only**, so a missing Metal library cannot quit the app |
 
 **Also in this fork:**
 
 - Whisper decoding uses explicit **`sv` / `en`** (transcribe, not translate); default session language **Swedish**; `transcription_language` in frontmatter.
 - Transcript Viewer **dedupes** files when Meetings and Voice point at the same folder.
 - Local **`scripts/release.sh test`** ad-hoc-signs when no Developer ID is configured (screen-recording permission may need re-granting after rebuilds).
+- **`scripts/release.sh`** builds **`mlx.metallib`** into the app. Without it, generating a summary quits the process. The script stops if the Metal toolchain is missing (`xcodebuild -downloadComponent MetalToolchain`).
 
 Full details: [docs/changes-from-hushscribe.md](docs/changes-from-hushscribe.md) · Language design: [docs/plan-recording-language-sv-en.md](docs/plan-recording-language-sv-en.md)
 

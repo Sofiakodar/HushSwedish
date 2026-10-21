@@ -291,8 +291,8 @@ private struct SummaryModelsSubTab: View {
 
             Section {
                 Button {
-                    let cacheDir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-                        .appendingPathComponent("models")
+                    let cacheDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+                        .appendingPathComponent("huggingface/models")
                     try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
                     NSWorkspace.shared.open(cacheDir)
                 } label: {
@@ -595,6 +595,11 @@ private struct SummaryModelRow: View {
                     .progressViewStyle(.linear)
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
+            } else if llmEngine.downloadErrorModel == model, let message = llmEngine.downloadError {
+                Text(message)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.vertical, 2)
