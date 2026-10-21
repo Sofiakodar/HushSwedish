@@ -77,6 +77,8 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             }
         }
 
+        transcriptionEngine.attachSettings(settings)
+
         observeIcon()
         observeMode()
     }

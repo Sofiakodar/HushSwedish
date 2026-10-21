@@ -25,12 +25,26 @@ Upstream behavior still applies unless listed here. For session-language design 
 
 - **Upstream:** Parakeet-TDT v3 is the typical default for new users.
 - **HushSwedish:** **Whisper Large v3** is `TranscriptionModel.defaultSelection` in Settings → Models.
-- Rationale: stronger Swedish when combined with explicit session language (below). Users can still switch to Parakeet, Whisper Base, or Apple Speech.
+- Rationale: stronger Swedish when combined with explicit session language (below). Users can still switch to Parakeet or Whisper Base.
 
-### Recording without Parakeet
+### Download before first recording
 
-- **Upstream:** Recording could be blocked until Parakeet was downloaded, even if another model was selected.
-- **HushSwedish:** Recording is gated on **the model you actually selected**. Parakeet’s download prompt appears only when Parakeet is the active model. You can record with Whisper or Apple Speech without ever downloading Parakeet.
+- **Upstream:** Parakeet could block recording even when another model was selected; Whisper could start downloading mid-session.
+- **HushSwedish:** **Call Capture**, **Voice Memo**, and **Transcribe File** stay disabled until the **selected** model is on disk. The main popover explains recommendations: **Whisper Large v3** (Swedish + English), **Parakeet** (English-only meetings). **Apple Speech** was removed (unreliable with the VAD + chunk pipeline).
+
+### Model warm-up, idle offload, and memory pressure
+
+**Problem:** Whisper Large v3 in RAM is large (~1–3 GB). Loading on every “Record” felt slow; keeping models loaded all day wasted memory for a menu-bar app.
+
+**HushSwedish:**
+
+1. **Warm-up** — When you open the menu bar popover (or the detached main window), the app preloads **VAD + the selected ASR model** if files are already cached (WhisperKit or Parakeet). Same warm-up runs again during the pre-record **“Transcribing…”** step if needed.
+2. **Pre-record countdown** — **3 → 2 → 1 → “Transcribing…”** before capture starts, so the session timer and mic align with a ready engine and you know when to start speaking.
+3. **Idle offload** — When the popover/window **closes** and you are not recording or downloading, a timer starts (**Settings → Recording → Memory**): **30 minutes**, **1 hour** (default), or **2 hours**. When it fires, in-memory ASR + VAD are released; **disk cache is unchanged** (no re-download).
+4. **Memory pressure** — macOS **warning/critical** memory pressure unloads models early (unless a session or download is active), even if the idle timer has not fired.
+5. **Next meeting** — Open the menu again; warm-up reloads from cache in a few seconds, then countdown → record. You do **not** need to quit HushSwedish between morning and afternoon meetings.
+
+Offload does **not** run while the UI is visible, while recording, or while a model download is in progress.
 
 ---
 
@@ -41,8 +55,7 @@ Upstream behavior still applies unless listed here. For session-language design 
 - Before **Call Capture** or **Voice Memo**, the control bar has a **language picker (SV / EN)**.
 - The choice is **remembered** for the next session (`lastSessionTranscriptionLanguage` in preferences).
 - **WhisperKit:** decoding uses explicit language codes (`sv` / `en`) — **transcribe**, not translate.
-- **Apple Speech:** uses a matching locale for on-device recognition.
-- **Parakeet:** still auto-detects; the picker applies primarily to Whisper and Apple Speech (UI explains this).
+- **Parakeet:** still auto-detects; the picker applies primarily to Whisper (UI explains this).
 - Saved transcripts include YAML frontmatter: **`transcription_language: "sv"`** or **`"en"`**.
 
 Default session language for new installs: **Swedish**.
@@ -141,7 +154,7 @@ These are **not** fork-specific changes; they remain as in upstream unless you c
 Rough order of fork-specific commits:
 
 1. Allow recording without Parakeet when another ASR model is selected  
-2. Session language SV/EN for Whisper and Apple Speech  
+2. Session language SV/EN for Whisper  
 3. Rebrand to HushSwedish (bundle ID, vault paths)  
 4. README and UI branding  
 5. Default new installs to Whisper Large v3  
@@ -149,5 +162,7 @@ Rough order of fork-specific commits:
 7. Screen capture permission handling for local builds  
 8. Flush in-flight speech on pause/stop  
 9. Summary model download no longer quits the app  
+10. Warm-load on popover open, pre-record countdown, require ASR download before record  
+11. Remove Apple Speech; idle model offload + memory-pressure handling  
 
 For exact diffs, use `git log` on this repository from the first fork commit through `HEAD`.

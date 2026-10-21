@@ -17,6 +17,7 @@ struct HushSwedishApp: App {
         let store = TranscriptStore()
         let engine = TranscriptionEngine(transcriptStore: store)
         engine.setModel(s.transcriptionModel)
+        engine.attachSettings(s)
         _settings = State(wrappedValue: s)
         _recordingState = State(wrappedValue: rs)
         _meetingMonitor = State(wrappedValue: mm)

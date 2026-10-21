@@ -70,6 +70,9 @@ struct ContentView: View {
             .onChange(of: settings.transcriptionModel) {
                 transcriptionEngine.setModel(settings.transcriptionModel)
             }
+            .onChange(of: settings.modelIdleUnloadInterval) {
+                transcriptionEngine.idleUnloadIntervalDidChange()
+            }
             .onChange(of: transcriptStore.utterances.count) {
                 handleNewUtterance()
             }
@@ -111,6 +114,8 @@ struct ContentView: View {
         }
         .frame(minWidth: 480, maxWidth: 480, minHeight: 360)
         .background(Color.bg0)
+        .onAppear { transcriptionEngine.noteTranscriptionUIAppeared() }
+        .onDisappear { transcriptionEngine.noteTranscriptionUIDisappeared() }
         .confirmationDialog("Quit \(AppIdentity.displayName)?", isPresented: $showQuitConfirmation, titleVisibility: .visible) {
             Button("Quit", role: .destructive) { NSApplication.shared.terminate(nil) }
             Button("Cancel", role: .cancel) {}

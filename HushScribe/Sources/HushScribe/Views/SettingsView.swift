@@ -138,6 +138,18 @@ private struct RecordingSettingsTab: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Memory") {
+                Picker("Unload models when idle", selection: $settings.modelIdleUnloadInterval) {
+                    ForEach(ModelIdleUnloadInterval.allCases) { interval in
+                        Text(interval.displayName).tag(interval)
+                    }
+                }
+                .font(.system(size: 12))
+                Text("After you close the menu window, transcription models are removed from RAM once this time passes. Opening the menu again reloads them (no re-download). macOS memory pressure can unload them sooner.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
         }
         .formStyle(.grouped)
         .onAppear {

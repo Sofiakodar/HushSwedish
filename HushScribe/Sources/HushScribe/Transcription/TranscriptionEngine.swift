@@ -111,9 +111,100 @@ final class TranscriptionEngine {
     /// Listens for default input device changes at the OS level.
     private var defaultDeviceListenerBlock: AudioObjectPropertyListenerBlock?
 
+    private weak var appSettings: AppSettings?
+    private var idleUnloadTask: Task<Void, Never>?
+    private var memoryPressureSource: DispatchSourceMemoryPressure?
+    private var transcriptionUIPresenceCount = 0
+
     init(transcriptStore: TranscriptStore) {
         self.transcriptStore = transcriptStore
         self.modelDownloadState = Self.parakeetDownloadStateFromDisk()
+    }
+
+    func attachSettings(_ settings: AppSettings) {
+        appSettings = settings
+        installMemoryPressureMonitorIfNeeded()
+    }
+
+    /// Main popover or window became visible — keep models warm, cancel idle offload.
+    func noteTranscriptionUIAppeared() {
+        transcriptionUIPresenceCount += 1
+        cancelIdleModelUnload()
+    }
+
+    /// Main popover or window closed — start idle offload timer when nothing else blocks it.
+    func noteTranscriptionUIDisappeared() {
+        transcriptionUIPresenceCount = max(0, transcriptionUIPresenceCount - 1)
+        if transcriptionUIPresenceCount == 0 {
+            scheduleIdleModelUnload()
+        }
+    }
+
+    func idleUnloadIntervalDidChange() {
+        guard transcriptionUIPresenceCount == 0 else { return }
+        scheduleIdleModelUnload()
+    }
+
+    private var isTranscriptionUIVisible: Bool { transcriptionUIPresenceCount > 0 }
+
+    private var isActivelyDownloadingModels: Bool {
+        if modelDownloadState == .downloading { return true }
+        if downloadingModel != nil { return true }
+        return false
+    }
+
+    private var canOffloadModelsFromMemory: Bool {
+        !isRunning && !isDrainingSpeech && !isActivelyDownloadingModels && !isTranscriptionUIVisible
+    }
+
+    func releaseLoadedModels(reason: String) {
+        let hadModels = whisperKitBackend != nil || asrManager != nil || micVadManager != nil || sysVadManager != nil
+        whisperKitBackend = nil
+        asrManager = nil
+        micVadManager = nil
+        sysVadManager = nil
+        guard hadModels else { return }
+        diagLog("[ENGINE-OFFLOAD] released in-memory models (\(reason))")
+        if assetStatus.hasPrefix("Loading") || assetStatus.hasPrefix("Downloading") {
+            assetStatus = "Ready"
+        }
+    }
+
+    func scheduleIdleModelUnload() {
+        idleUnloadTask?.cancel()
+        guard canOffloadModelsFromMemory else { return }
+        guard let interval = appSettings?.modelIdleUnloadInterval else { return }
+        let seconds = interval.seconds
+        idleUnloadTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(seconds))
+            guard !Task.isCancelled else { return }
+            guard let self, self.canOffloadModelsFromMemory else { return }
+            self.releaseLoadedModels(reason: "idle \(interval.displayName)")
+            self.idleUnloadTask = nil
+        }
+    }
+
+    func cancelIdleModelUnload() {
+        idleUnloadTask?.cancel()
+        idleUnloadTask = nil
+    }
+
+    private func installMemoryPressureMonitorIfNeeded() {
+        guard memoryPressureSource == nil else { return }
+        let source = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .main)
+        source.setEventHandler { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.offloadModelsForMemoryPressure()
+            }
+        }
+        source.activate()
+        memoryPressureSource = source
+    }
+
+    private func offloadModelsForMemoryPressure() {
+        guard !isRunning, !isDrainingSpeech, !isActivelyDownloadingModels else { return }
+        cancelIdleModelUnload()
+        releaseLoadedModels(reason: "memory pressure")
     }
 
     /// Parakeet cache presence — independent of which model the user selected for transcription.
@@ -311,29 +402,55 @@ final class TranscriptionEngine {
         self.sysVadManager = sysVad
     }
 
-    /// Loads VAD + Whisper into memory when the selected Whisper model is already on disk.
+    /// Loads ASR + VAD into memory when the selected model is already on disk.
     func warmUpForRecording(sessionLanguage: SessionTranscriptionLanguage, sysVadThreshold: Double = 0.92) async {
         guard !isRunning else { return }
-        guard selectedModel.isWhisperKit, isModelDownloaded(selectedModel) else { return }
-        if whisperKitBackend != nil, micVadManager != nil, sysVadManager != nil {
-            if whisperKitBackend?.languageCode != sessionLanguage.whisperLanguageCode {
-                do {
-                    _ = try await resolveWhisperBackend(sessionLanguage: sessionLanguage)
-                } catch {
-                    diagLog("[ENGINE-WARM] language retarget failed: \(error.localizedDescription)")
+        cancelIdleModelUnload()
+        guard isModelDownloaded(selectedModel) else { return }
+
+        if selectedModel.isWhisperKit {
+            if whisperKitBackend != nil, micVadManager != nil, sysVadManager != nil {
+                if whisperKitBackend?.languageCode != sessionLanguage.whisperLanguageCode {
+                    do {
+                        _ = try await resolveWhisperBackend(sessionLanguage: sessionLanguage)
+                    } catch {
+                        diagLog("[ENGINE-WARM] language retarget failed: \(error.localizedDescription)")
+                    }
                 }
+                assetStatus = "Ready"
+                return
             }
-            assetStatus = "Ready"
+            do {
+                try await ensureVADManagers(sysVadThreshold: sysVadThreshold)
+                _ = try await resolveWhisperBackend(sessionLanguage: sessionLanguage)
+                assetStatus = "Ready"
+                diagLog("[ENGINE-WARM] Whisper ready for recording")
+            } catch {
+                diagLog("[ENGINE-WARM] \(error.localizedDescription)")
+                assetStatus = "Ready"
+            }
             return
         }
-        do {
-            try await ensureVADManagers(sysVadThreshold: sysVadThreshold)
-            _ = try await resolveWhisperBackend(sessionLanguage: sessionLanguage)
-            assetStatus = "Ready"
-            diagLog("[ENGINE-WARM] Whisper ready for recording")
-        } catch {
-            diagLog("[ENGINE-WARM] \(error.localizedDescription)")
-            assetStatus = "Ready"
+
+        if selectedModel == .parakeet {
+            if asrManager != nil, micVadManager != nil, sysVadManager != nil {
+                assetStatus = "Ready"
+                return
+            }
+            do {
+                assetStatus = "Loading models..."
+                let models = try await AsrModels.loadFromCache(version: .v3)
+                assetStatus = "Initializing ASR..."
+                let asr = AsrManager(config: .default)
+                try await asr.loadModels(models)
+                asrManager = asr
+                try await ensureVADManagers(sysVadThreshold: sysVadThreshold)
+                assetStatus = "Ready"
+                diagLog("[ENGINE-WARM] Parakeet ready for recording")
+            } catch {
+                diagLog("[ENGINE-WARM] \(error.localizedDescription)")
+                assetStatus = "Ready"
+            }
         }
     }
 
@@ -346,6 +463,7 @@ final class TranscriptionEngine {
     ) async {
         diagLog("[ENGINE-0] start() called, isRunning=\(isRunning)")
         guard !isRunning else { return }
+        cancelIdleModelUnload()
         lastError = nil
 
         guard await ensureMicrophonePermission() else { return }
@@ -840,6 +958,7 @@ final class TranscriptionEngine {
     /// Posts `.appStopRecording` when processing completes so ContentView can finalize the session.
     func startFileTranscription(url: URL, sessionLanguage: SessionTranscriptionLanguage) async {
         guard !isRunning else { return }
+        cancelIdleModelUnload()
         lastError = nil
         isRunning = true
         isPaused = false

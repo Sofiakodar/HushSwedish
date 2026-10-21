@@ -59,6 +59,33 @@ enum SessionTranscriptionLanguage: String, CaseIterable, Codable, Identifiable {
     }
 }
 
+/// How long HushSwedish waits after the UI closes before unloading in-memory ASR/VAD models.
+enum ModelIdleUnloadInterval: String, CaseIterable, Identifiable {
+    case thirtyMinutes = "30"
+    case oneHour = "60"
+    case twoHours = "120"
+
+    var id: String { rawValue }
+
+    static let defaultSelection: ModelIdleUnloadInterval = .oneHour
+
+    var displayName: String {
+        switch self {
+        case .thirtyMinutes: return "30 minutes"
+        case .oneHour: return "1 hour"
+        case .twoHours: return "2 hours"
+        }
+    }
+
+    var seconds: TimeInterval {
+        switch self {
+        case .thirtyMinutes: return 30 * 60
+        case .oneHour: return 60 * 60
+        case .twoHours: return 2 * 60 * 60
+        }
+    }
+}
+
 enum TranscriptionModel: String, CaseIterable {
     case parakeet = "parakeet"
     case whisperBase = "whisperBase"
@@ -179,6 +206,11 @@ final class AppSettings {
         didSet { UserDefaults.standard.set(sysVadThreshold, forKey: "sysVadThreshold") }
     }
 
+    /// Idle time after the main UI closes before transcription models are unloaded from RAM.
+    var modelIdleUnloadInterval: ModelIdleUnloadInterval {
+        didSet { UserDefaults.standard.set(modelIdleUnloadInterval.rawValue, forKey: "modelIdleUnloadInterval") }
+    }
+
     /// When true, recording starts automatically when a meeting app is detected.
     var autoMeetingDetect: Bool {
         didSet { UserDefaults.standard.set(autoMeetingDetect, forKey: "autoMeetingDetect") }
@@ -255,6 +287,8 @@ final class AppSettings {
         }
         let storedThreshold = defaults.double(forKey: "sysVadThreshold")
         self.sysVadThreshold = storedThreshold > 0 ? storedThreshold : 0.92
+        let storedIdleUnload = defaults.string(forKey: "modelIdleUnloadInterval") ?? ""
+        self.modelIdleUnloadInterval = ModelIdleUnloadInterval(rawValue: storedIdleUnload) ?? .defaultSelection
         self.autoMeetingDetect = defaults.bool(forKey: "autoMeetingDetect")
         let storedDelay = defaults.integer(forKey: "meetingDetectDelaySecs")
         self.meetingDetectDelaySecs = storedDelay > 0 ? storedDelay : 3
@@ -294,6 +328,7 @@ final class AppSettings {
             CustomSummaryPrompt(name: "", body: ""),
         ]
         sysVadThreshold = 0.92
+        modelIdleUnloadInterval = .defaultSelection
         autoMeetingDetect = false
         meetingDetectDelaySecs = 3
         meetingStopDelaySecs = 5

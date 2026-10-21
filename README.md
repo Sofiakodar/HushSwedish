@@ -40,6 +40,7 @@ HushSwedish is a **personal fork** of [HushScribe](https://github.com/drcursor/H
 | Default vaults | HushScribe folders | **`~/Documents/HushSwedish/Meetings`** & **`Voice`** |
 | Model cache on disk | Shared system paths | **Same** — no second Whisper download if you use both apps |
 | Summary model download | Loads the model into MLX as it downloads | **Downloads the files only**, so a missing Metal library cannot quit the app |
+| Model RAM | Stays loaded until you quit | **Warm on menu open**, **idle offload** (30 min / 1 h / 2 h), **memory-pressure** unload |
 
 **Also in this fork:**
 
@@ -47,6 +48,9 @@ HushSwedish is a **personal fork** of [HushScribe](https://github.com/drcursor/H
 - Transcript Viewer **dedupes** files when Meetings and Voice point at the same folder.
 - Local **`scripts/release.sh test`** ad-hoc-signs when no Developer ID is configured (screen-recording permission may need re-granting after rebuilds).
 - **`scripts/release.sh`** builds **`mlx.metallib`** into the app. Without it, generating a summary quits the process. The script stops if the Metal toolchain is missing (`xcodebuild -downloadComponent MetalToolchain`).
+- **Model warm-up / offload:** opening the menu bar popover preloads the selected ASR model (when already downloaded). After you close the UI, models leave RAM after **Settings → Recording → Memory** (default **1 hour**). macOS **memory pressure** can unload sooner. Re-open the menu to warm again — no re-download.
+- **Pre-record countdown** (3 → 2 → 1 → “Transcribing…”) so capture and the session timer start when the engine is ready.
+- **Download gate:** Call Capture / Voice Memo stay disabled until the selected transcription model is on disk; the main view recommends **Whisper Large v3** (SV/EN) or **Parakeet** (English-only).
 
 Full details: [docs/changes-from-hushscribe.md](docs/changes-from-hushscribe.md) · Language design: [docs/plan-recording-language-sv-en.md](docs/plan-recording-language-sv-en.md)
 
@@ -75,11 +79,14 @@ Signed DMG / notarization: your Apple Developer ID in `scripts/release.sh`. Layo
 
 ## Day-to-day use
 
-1. Open the menu bar app → choose **SV/EN**, optional **name**, then **Call Capture** or **Voice Memo**.
-2. Transcripts land as Markdown (+ YAML) in your vault folders.
-3. **Transcript Viewer** → browse, export, optional on-device **summary** (Qwen3, Gemma, Apple NL).
+1. **Download** your ASR model once in **Settings → Models** (default: **Whisper Large v3**).
+2. Open the menu bar app — models **warm in the background** while you set **SV/EN**, optional **name**, then **Call Capture** or **Voice Memo** (after the short countdown).
+3. Transcripts land as Markdown (+ YAML) in your vault folders.
+4. **Transcript Viewer** → browse, export, optional on-device **summary** (Qwen3, Gemma, Apple NL).
 
-Nothing is sent to the internet for transcription or summarization; models download from Hugging Face / Apple only when you choose them in **Settings → Models**.
+Close the popover when done; transcription models **drop from RAM** after the idle interval you chose (default 1 hour) so the app can stay in the menu bar without holding ~1–3 GB. Open the menu again before the next meeting to warm up.
+
+Nothing is sent to the internet for transcription or summarization; models download from Hugging Face when you choose them in **Settings → Models**.
 
 ## Transcription models
 
