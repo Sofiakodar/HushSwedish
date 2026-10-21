@@ -96,6 +96,7 @@ final class TranscriptionEngine {
 
     /// Apple Speech backend (loaded on demand).
     private var sfSpeechBackend: SFSpeechBackend?
+    private var sfSpeechSessionLanguage: SessionTranscriptionLanguage?
 
     /// Tracks the resolved mic device ID currently in use.
     private var currentMicDeviceID: AudioDeviceID = 0
@@ -266,7 +267,7 @@ final class TranscriptionEngine {
         do {
             let wk = try await WhisperKit(model: modelID)
             if selectedModel == model {
-                whisperKitBackend = WhisperKitASRBackend(wk)
+                whisperKitBackend = WhisperKitASRBackend(wk, languageCode: SessionTranscriptionLanguage.swedish.whisperLanguageCode)
             }
         } catch {
             lastError = "Failed to download \(model.displayName): \(error.localizedDescription)"
@@ -287,11 +288,43 @@ final class TranscriptionEngine {
         syncParakeetDownloadState()
         // Clear backends that don't match the new model so they reload on next start().
         if !model.isWhisperKit { whisperKitBackend = nil }
-        if !model.isAppleSpeech { sfSpeechBackend = nil }
+        if !model.isAppleSpeech {
+            sfSpeechBackend = nil
+            sfSpeechSessionLanguage = nil
+        }
         if model.isWhisperKit || model.isAppleSpeech { asrManager = nil }
     }
 
-    func start(locale: Locale, inputDeviceID: AudioDeviceID = 0, appBundleID: String? = nil, sysVadThreshold: Double = 0.92) async {
+    private func resolveWhisperBackend(sessionLanguage: SessionTranscriptionLanguage) async throws -> WhisperKitASRBackend {
+        let code = sessionLanguage.whisperLanguageCode
+        if let existing = whisperKitBackend {
+            if existing.languageCode == code {
+                return existing
+            }
+            let retargeted = WhisperKitASRBackend(existing.whisperKit, languageCode: code)
+            whisperKitBackend = retargeted
+            return retargeted
+        }
+        let modelID = selectedModel.whisperModelID!
+        assetStatus = "Downloading \(selectedModel.displayName)..."
+        diagLog("[ENGINE-WK] loading WhisperKit model \(modelID)...")
+        let wk = try await WhisperKit(model: modelID)
+        let backend = WhisperKitASRBackend(wk, languageCode: code)
+        whisperKitBackend = backend
+        return backend
+    }
+
+    private func resolveSFSpeechBackend(sessionLanguage: SessionTranscriptionLanguage) throws -> SFSpeechBackend {
+        if let existing = sfSpeechBackend, sfSpeechSessionLanguage == sessionLanguage {
+            return existing
+        }
+        let backend = try SFSpeechBackend(locale: sessionLanguage.locale)
+        sfSpeechBackend = backend
+        sfSpeechSessionLanguage = sessionLanguage
+        return backend
+    }
+
+    func start(sessionLanguage: SessionTranscriptionLanguage, inputDeviceID: AudioDeviceID = 0, appBundleID: String? = nil, sysVadThreshold: Double = 0.92) async {
         diagLog("[ENGINE-0] start() called, isRunning=\(isRunning)")
         guard !isRunning else { return }
         lastError = nil
@@ -323,25 +356,15 @@ final class TranscriptionEngine {
                     return
                 }
             }
-            if let existing = whisperKitBackend {
-                asrBackend = existing
-            } else {
-                let modelID = selectedModel.whisperModelID!
-                assetStatus = "Downloading \(selectedModel.displayName)..."
-                diagLog("[ENGINE-WK] loading WhisperKit model \(modelID)...")
-                do {
-                    let wk = try await WhisperKit(model: modelID)
-                    let backend = WhisperKitASRBackend(wk)
-                    self.whisperKitBackend = backend
-                    asrBackend = backend
-                } catch {
-                    let msg = "Failed to load WhisperKit: \(error.localizedDescription)"
-                    diagLog("[ENGINE-WK-FAIL] \(msg)")
-                    lastError = msg
-                    assetStatus = "Ready"
-                    isRunning = false
-                    return
-                }
+            do {
+                asrBackend = try await resolveWhisperBackend(sessionLanguage: sessionLanguage)
+            } catch {
+                let msg = "Failed to load WhisperKit: \(error.localizedDescription)"
+                diagLog("[ENGINE-WK-FAIL] \(msg)")
+                lastError = msg
+                assetStatus = "Ready"
+                isRunning = false
+                return
             }
         } else if selectedModel.isAppleSpeech {
             // Apple Speech path: request authorization, load VAD independently, then init recognizer.
@@ -369,22 +392,16 @@ final class TranscriptionEngine {
                     return
                 }
             }
-            if let existing = sfSpeechBackend {
-                asrBackend = existing
-            } else {
-                diagLog("[ENGINE-SF] initializing Apple Speech recognizer...")
-                do {
-                    let backend = try SFSpeechBackend(locale: locale)
-                    self.sfSpeechBackend = backend
-                    asrBackend = backend
-                } catch {
-                    let msg = "Failed to initialize Apple Speech: \(error.localizedDescription)"
-                    diagLog("[ENGINE-SF-FAIL] \(msg)")
-                    lastError = msg
-                    assetStatus = "Ready"
-                    isRunning = false
-                    return
-                }
+            diagLog("[ENGINE-SF] initializing Apple Speech recognizer...")
+            do {
+                asrBackend = try resolveSFSpeechBackend(sessionLanguage: sessionLanguage)
+            } catch {
+                let msg = "Failed to initialize Apple Speech: \(error.localizedDescription)"
+                diagLog("[ENGINE-SF-FAIL] \(msg)")
+                lastError = msg
+                assetStatus = "Ready"
+                isRunning = false
+                return
             }
         } else {
             // Parakeet path: preserve the original loading order — ASR first, then VAD.
@@ -809,7 +826,7 @@ final class TranscriptionEngine {
 
     /// Transcribe an audio or video file using the same VAD + ASR pipeline as live sessions.
     /// Posts `.hushscribeStopRecording` when processing completes so ContentView can finalize the session.
-    func startFileTranscription(url: URL, locale: Locale) async {
+    func startFileTranscription(url: URL, sessionLanguage: SessionTranscriptionLanguage) async {
         guard !isRunning else { return }
         lastError = nil
         isRunning = true
@@ -827,20 +844,11 @@ final class TranscriptionEngine {
                     assetStatus = "Ready"; isRunning = false; return
                 }
             }
-            if let existing = whisperKitBackend {
-                asrBackend = existing
-            } else {
-                let modelID = selectedModel.whisperModelID!
-                assetStatus = "Downloading \(selectedModel.displayName)..."
-                do {
-                    let wk = try await WhisperKit(model: modelID)
-                    let backend = WhisperKitASRBackend(wk)
-                    whisperKitBackend = backend
-                    asrBackend = backend
-                } catch {
-                    lastError = "Failed to load WhisperKit: \(error.localizedDescription)"
-                    assetStatus = "Ready"; isRunning = false; return
-                }
+            do {
+                asrBackend = try await resolveWhisperBackend(sessionLanguage: sessionLanguage)
+            } catch {
+                lastError = "Failed to load WhisperKit: \(error.localizedDescription)"
+                assetStatus = "Ready"; isRunning = false; return
             }
         } else if selectedModel.isAppleSpeech {
             let authorized = await SFSpeechBackend.requestAuthorization()
@@ -857,17 +865,11 @@ final class TranscriptionEngine {
                     assetStatus = "Ready"; isRunning = false; return
                 }
             }
-            if let existing = sfSpeechBackend {
-                asrBackend = existing
-            } else {
-                do {
-                    let backend = try SFSpeechBackend(locale: locale)
-                    sfSpeechBackend = backend
-                    asrBackend = backend
-                } catch {
-                    lastError = "Failed to initialize Apple Speech: \(error.localizedDescription)"
-                    assetStatus = "Ready"; isRunning = false; return
-                }
+            do {
+                asrBackend = try resolveSFSpeechBackend(sessionLanguage: sessionLanguage)
+            } catch {
+                lastError = "Failed to initialize Apple Speech: \(error.localizedDescription)"
+                assetStatus = "Ready"; isRunning = false; return
             }
         } else {
             // Parakeet

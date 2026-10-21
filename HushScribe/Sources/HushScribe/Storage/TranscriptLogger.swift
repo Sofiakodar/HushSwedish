@@ -27,7 +27,12 @@ actor TranscriptLogger {
     private var lastSpeakersDetected: Set<String> = []
     private var lastSessionContext: String = ""
 
-    func startSession(sourceApp: String, vaultPath: String, sessionType: SessionType = .callCapture) throws {
+    func startSession(
+        sourceApp: String,
+        vaultPath: String,
+        sessionType: SessionType = .callCapture,
+        transcriptionLanguage: SessionTranscriptionLanguage? = nil
+    ) throws {
         self.sourceApp = sourceApp
         self.sessionStartTime = Date()
         self.speakersDetected = []
@@ -68,6 +73,13 @@ actor TranscriptLogger {
         let filename = "\(fileFmt.string(from: now)) \(fileLabel).md"
         currentFilePath = directory.appendingPathComponent(filename)
 
+        let languageLine: String
+        if let transcriptionLanguage {
+            languageLine = "transcription_language: \"\(transcriptionLanguage.rawValue)\"\n"
+        } else {
+            languageLine = ""
+        }
+
         let content = """
 ---
 type: \(noteType)
@@ -76,7 +88,7 @@ time: "\(timeStr)"
 duration: "00:00"
 source_app: "\(sourceApp)"
 source_file: "\(filename)"
-attendees: []
+\(languageLine)attendees: []
 context: ""
 tags:
   - \(logTag)

@@ -34,6 +34,31 @@ enum MainWindowMode: String, CaseIterable {
     case detached
 }
 
+/// Language for the current recording session (Whisper explicit decode / Apple Speech locale).
+enum SessionTranscriptionLanguage: String, CaseIterable, Codable, Identifiable {
+    case swedish = "sv"
+    case english = "en"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .swedish: return "Swedish"
+        case .english: return "English"
+        }
+    }
+
+    /// Whisper `DecodingOptions.language` code.
+    var whisperLanguageCode: String { rawValue }
+
+    var locale: Locale {
+        switch self {
+        case .swedish: return Locale(identifier: "sv-SE")
+        case .english: return Locale(identifier: "en-US")
+        }
+    }
+}
+
 enum TranscriptionModel: String, CaseIterable {
     case parakeet = "parakeet"
     case whisperBase = "whisperBase"
@@ -89,6 +114,13 @@ enum TranscriptionModel: String, CaseIterable {
 final class AppSettings {
     var transcriptionLocale: String {
         didSet { UserDefaults.standard.set(transcriptionLocale, forKey: "transcriptionLocale") }
+    }
+
+    /// Last chosen session language for Call Capture / Voice Memo / file import.
+    var sessionTranscriptionLanguage: SessionTranscriptionLanguage {
+        didSet {
+            UserDefaults.standard.set(sessionTranscriptionLanguage.rawValue, forKey: "lastSessionTranscriptionLanguage")
+        }
     }
 
     /// Stored as the AudioDeviceID integer. 0 means "use system default".
@@ -191,6 +223,8 @@ final class AppSettings {
     init() {
         let defaults = UserDefaults.standard
         self.transcriptionLocale = defaults.string(forKey: "transcriptionLocale") ?? "en-US"
+        let storedSessionLang = defaults.string(forKey: "lastSessionTranscriptionLanguage") ?? ""
+        self.sessionTranscriptionLanguage = SessionTranscriptionLanguage(rawValue: storedSessionLang) ?? .swedish
         self.inputDeviceID = AudioDeviceID(defaults.integer(forKey: "inputDeviceID"))
         let storedTimeout = defaults.integer(forKey: "silenceTimeoutSeconds")
         self.silenceTimeoutSeconds = storedTimeout > 0 ? storedTimeout : 120
@@ -237,6 +271,7 @@ final class AppSettings {
     /// Resets all settings to their defaults.
     func reset() {
         transcriptionLocale = "en-US"
+        sessionTranscriptionLanguage = .swedish
         inputDeviceID = 0
         silenceTimeoutSeconds = 120
         transcriptionModel = .parakeet

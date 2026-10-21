@@ -49,6 +49,7 @@ struct ContentView: View {
     @State private var speakerPreviewsForNaming: [String: [String]] = [:]
     @State private var speakerNamingContinuation: CheckedContinuation<[String: String], Never>?
     @State private var showFilePicker = false
+    @State private var recordingSessionLanguage: SessionTranscriptionLanguage?
 
     var body: some View {
         coreContent
@@ -499,6 +500,9 @@ struct ContentView: View {
             isPaused: transcriptionEngine.isPaused,
             modelsReady: transcriptionEngine.canStartRecording,
             activeSessionType: activeSessionType,
+            sessionLanguage: $settings.sessionTranscriptionLanguage,
+            recordingSessionLanguage: recordingSessionLanguage,
+            transcriptionModel: settings.transcriptionModel,
             audioLevel: audioLevel,
             detectedApp: detectedAppName,
             silenceSeconds: silenceSeconds,
@@ -612,6 +616,8 @@ struct ContentView: View {
             return  // handled by startFileSession(url:)
         }
 
+        let sessionLanguage = settings.sessionTranscriptionLanguage
+
         Task {
             transcriptionEngine.lastError = nil
             await sessionStore.startSession()
@@ -619,7 +625,8 @@ struct ContentView: View {
                 try await transcriptLogger.startSession(
                     sourceApp: sourceApp,
                     vaultPath: outputPath,
-                    sessionType: type
+                    sessionType: type,
+                    transcriptionLanguage: sessionLanguage
                 )
             } catch {
                 await sessionStore.endSession()
@@ -628,18 +635,19 @@ struct ContentView: View {
             }
             activeSessionType = type
             detectedAppName = resolvedAppName
+            recordingSessionLanguage = sessionLanguage
             recordingState.isRecording = true
             recordingState.isPaused = false
             if type == .callCapture {
                 await transcriptionEngine.start(
-                    locale: settings.locale,
+                    sessionLanguage: sessionLanguage,
                     inputDeviceID: settings.inputDeviceID,
                     appBundleID: appBundleID,
                     sysVadThreshold: settings.sysVadThreshold
                 )
             } else {
                 await transcriptionEngine.start(
-                    locale: settings.locale,
+                    sessionLanguage: sessionLanguage,
                     inputDeviceID: settings.inputDeviceID,
                     sysVadThreshold: settings.sysVadThreshold
                 )
@@ -660,6 +668,7 @@ struct ContentView: View {
         savedFileURL = nil
         bannerDismissTask?.cancel()
         activeSessionType = .fileImport
+        let sessionLanguage = settings.sessionTranscriptionLanguage
 
         Task {
             transcriptionEngine.lastError = nil
@@ -668,7 +677,8 @@ struct ContentView: View {
                 try await transcriptLogger.startSession(
                     sourceApp: url.deletingPathExtension().lastPathComponent,
                     vaultPath: settings.vaultVoicePath,
-                    sessionType: .fileImport
+                    sessionType: .fileImport,
+                    transcriptionLanguage: sessionLanguage
                 )
             } catch {
                 await sessionStore.endSession()
@@ -676,9 +686,10 @@ struct ContentView: View {
                 transcriptionEngine.lastError = error.localizedDescription
                 return
             }
+            recordingSessionLanguage = sessionLanguage
             recordingState.isRecording = true
             recordingState.isPaused = false
-            await transcriptionEngine.startFileTranscription(url: url, locale: settings.locale)
+            await transcriptionEngine.startFileTranscription(url: url, sessionLanguage: sessionLanguage)
         }
     }
 
@@ -698,6 +709,7 @@ struct ContentView: View {
         let wasFileImport = activeSessionType == .fileImport
         activeSessionType = nil
         detectedAppName = nil
+        recordingSessionLanguage = nil
         silenceSeconds = 0
         recordingState.isRecording = false
         recordingState.isPaused = false

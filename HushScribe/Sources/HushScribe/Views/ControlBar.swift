@@ -18,6 +18,9 @@ struct ControlBar: View {
     let isPaused: Bool
     let modelsReady: Bool
     let activeSessionType: SessionType?
+    @Binding var sessionLanguage: SessionTranscriptionLanguage
+    let recordingSessionLanguage: SessionTranscriptionLanguage?
+    let transcriptionModel: TranscriptionModel
     let audioLevel: Float
     let detectedApp: String?
     let silenceSeconds: Int
@@ -104,7 +107,9 @@ struct ControlBar: View {
                         .padding(.bottom, 4)
                 }
             } else {
-                HStack(spacing: 10) {
+                VStack(spacing: 8) {
+                    sessionLanguagePicker
+                    HStack(spacing: 10) {
                     Button(action: onStartCallCapture) {
                         HStack(spacing: 6) {
                             Image(systemName: "phone.fill")
@@ -153,6 +158,7 @@ struct ControlBar: View {
                     .disabled(!modelsReady)
                     .keyboardShortcut("r", modifiers: [.command, .shift])
                 }
+                }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
             }
@@ -161,19 +167,44 @@ struct ControlBar: View {
         .overlay(Divider(), alignment: .top)
     }
 
+    private var sessionLanguagePicker: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Picker("Language", selection: $sessionLanguage) {
+                ForEach(SessionTranscriptionLanguage.allCases) { lang in
+                    Text(lang.displayName).tag(lang)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            if transcriptionModel == .parakeet {
+                Text("Parakeet auto-detects language. This setting applies to Whisper and Apple Speech.")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
     private var activeSessionLabel: String {
+        let languageSuffix: String
+        if let recordingSessionLanguage {
+            languageSuffix = " · \(recordingSessionLanguage.displayName)"
+        } else {
+            languageSuffix = ""
+        }
         switch activeSessionType {
         case .callCapture:
             if let app = detectedApp {
-                return "Call Capture · \(app)"
+                return "Call Capture · \(app)\(languageSuffix)"
             }
-            return "Call Capture"
+            return "Call Capture\(languageSuffix)"
         case .voiceMemo:
-            return "Voice Memo"
+            return "Voice Memo\(languageSuffix)"
         case .fileImport:
-            return "File Import"
+            return "File Import\(languageSuffix)"
         case nil:
-            return "Recording"
+            return "Recording\(languageSuffix)"
         }
     }
 }
