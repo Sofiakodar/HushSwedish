@@ -65,6 +65,9 @@ enum TranscriptionModel: String, CaseIterable {
     case whisperLargeV3 = "whisperLargeV3"
     case appleSpeech = "appleSpeech"
 
+    /// Used when `transcriptionModel` has never been saved (first launch) and after Settings → Reset.
+    static let defaultSelection: TranscriptionModel = .whisperLargeV3
+
     var displayName: String {
         switch self {
         case .parakeet: return "Parakeet-TDT v3 (Multilingual)"
@@ -229,7 +232,7 @@ final class AppSettings {
         let storedTimeout = defaults.integer(forKey: "silenceTimeoutSeconds")
         self.silenceTimeoutSeconds = storedTimeout > 0 ? storedTimeout : 120
         let storedModel = defaults.string(forKey: "transcriptionModel") ?? ""
-        self.transcriptionModel = TranscriptionModel(rawValue: storedModel) ?? .parakeet
+        self.transcriptionModel = TranscriptionModel(rawValue: storedModel) ?? .defaultSelection
         let storedSummaryModel = defaults.string(forKey: "summaryModel") ?? ""
         self.summaryModel = SummaryModel(rawValue: storedSummaryModel) ?? .appleNL
         let storedTemp = defaults.double(forKey: "summaryTemperature")
@@ -276,7 +279,7 @@ final class AppSettings {
         sessionTranscriptionLanguage = .swedish
         inputDeviceID = 0
         silenceTimeoutSeconds = 120
-        transcriptionModel = .parakeet
+        transcriptionModel = .defaultSelection
         summaryModel = .appleNL
         summaryTemperature = 0.3
         summaryMaxTokens = 4000

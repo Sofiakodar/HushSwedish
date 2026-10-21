@@ -84,7 +84,7 @@ final class TranscriptionEngine {
     private var micKeepAliveTask: Task<Void, Never>?
 
     /// The selected transcription model. Update via setModel() between sessions.
-    private(set) var selectedModel: TranscriptionModel = .parakeet
+    private(set) var selectedModel: TranscriptionModel = .defaultSelection
 
     /// Shared FluidAudio instances
     private var asrManager: AsrManager?
