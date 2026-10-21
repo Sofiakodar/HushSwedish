@@ -29,6 +29,7 @@ struct SummarizeView: View {
     @State private var activeTab: ActiveTab = .transcript
     @State private var copyTranscriptConfirmed = false
     @State private var copySummaryConfirmed = false
+    @State private var showAppleNLWarning = false
 
     enum ActiveTab { case transcript, summary }
 
@@ -173,10 +174,31 @@ struct SummarizeView: View {
                 .disabled(isGenerating)
 
                 if settings.summaryModel.isBuiltIn {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.orange)
-                        .help("Results are usually not satisfactory. Use Qwen3, Gemma 3, or Gemma 4.")
+                    Button {
+                        showAppleNLWarning.toggle()
+                    } label: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.orange)
+                            .frame(width: 18, height: 18)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Apple NL can’t use custom prompts. Results are usually not satisfactory — use Qwen3, Gemma 3, or Gemma 4.")
+                    .popover(isPresented: $showAppleNLWarning, arrowEdge: .bottom) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Apple NL can’t use custom prompts")
+                                .font(.system(size: 12, weight: .semibold))
+                            Text("The built-in Apple NL model ignores the prompts you set in Settings. Switch to Qwen3, Gemma 3, or Gemma 4 to pick a prompt when generating a summary.")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(12)
+                        .frame(width: 260, alignment: .leading)
+                    }
+                    .accessibilityLabel("Apple NL warning")
+                    .accessibilityHint("Shows why custom prompts are unavailable with Apple NL.")
                 }
             }
 
