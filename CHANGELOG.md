@@ -2,6 +2,10 @@
 
 > **Fork note:** HushScribe is a fork of [Tome](https://github.com/Gremble-io/Tome) by [Gremble-io](https://github.com/Gremble-io). Changes merged from the upstream Tome repository are marked with `[upstream]` in this changelog.
 
+## Unreleased
+
+- **Transcription model choice no longer requires Parakeet.** Call Capture and Voice Memo are enabled based on the model selected in Settings → Models. Whisper and Apple Speech can be used without downloading Parakeet; only Parakeet shows the main-window download prompt when it is the active model.
+
 ## [3.5.0] — 2026-04-23
 
 - **Transcript Viewer redesign.** The viewer now has a collapsible **Browse** sidebar (resizable by dragging the divider) for navigating saved transcripts. Transcripts with a saved summary show a sparkle badge. The toolbar has a single row: Browse toggle, Export, model picker, and Generate Summary.

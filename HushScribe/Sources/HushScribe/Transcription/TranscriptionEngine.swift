@@ -111,8 +111,45 @@ final class TranscriptionEngine {
 
     init(transcriptStore: TranscriptStore) {
         self.transcriptStore = transcriptStore
+        self.modelDownloadState = Self.parakeetDownloadStateFromDisk()
+    }
+
+    /// Parakeet cache presence — independent of which model the user selected for transcription.
+    private static func parakeetDownloadStateFromDisk() -> ModelDownloadState {
         let cacheDir = AsrModels.defaultCacheDirectory(for: .v3)
-        self.modelDownloadState = AsrModels.modelsExist(at: cacheDir, version: .v3) ? .ready : .needed
+        return AsrModels.modelsExist(at: cacheDir, version: .v3) ? .ready : .needed
+    }
+
+    private func syncParakeetDownloadState() {
+        guard modelDownloadState != .downloading else { return }
+        modelDownloadState = Self.parakeetDownloadStateFromDisk()
+    }
+
+    /// Whether Call Capture / Voice Memo can start with the currently selected model.
+    var canStartRecording: Bool {
+        switch selectedModel {
+        case .appleSpeech, .whisperBase, .whisperLargeV3:
+            return true
+        case .parakeet:
+            return isModelDownloaded(.parakeet)
+        }
+    }
+
+    /// Main-window download gate — only Parakeet must be on disk before recording.
+    var showsModelDownloadGate: Bool {
+        selectedModel == .parakeet && !isModelDownloaded(.parakeet)
+    }
+
+    /// Download in progress for the model the user selected in Settings.
+    var isDownloadingSelectedModel: Bool {
+        switch selectedModel {
+        case .parakeet:
+            return modelDownloadState == .downloading
+        case .whisperBase, .whisperLargeV3:
+            return downloadingModel == selectedModel
+        case .appleSpeech:
+            return false
+        }
     }
 
     /// Download and cache models without starting a recording session.
@@ -247,6 +284,7 @@ final class TranscriptionEngine {
     func setModel(_ model: TranscriptionModel) {
         guard !isRunning else { return }
         selectedModel = model
+        syncParakeetDownloadState()
         // Clear backends that don't match the new model so they reload on next start().
         if !model.isWhisperKit { whisperKitBackend = nil }
         if !model.isAppleSpeech { sfSpeechBackend = nil }
@@ -352,8 +390,8 @@ final class TranscriptionEngine {
             // Parakeet path: preserve the original loading order — ASR first, then VAD.
             // VadManager depends on the FluidAudio model bundle being available.
             if asrManager == nil || micVadManager == nil || sysVadManager == nil {
-                guard modelDownloadState == .ready else {
-                    lastError = "Models not downloaded. Please download the model first."
+                guard isModelDownloaded(.parakeet) else {
+                    lastError = "Parakeet model not downloaded. Download it in Settings → Models or switch to another transcription model."
                     assetStatus = "Ready"
                     isRunning = false
                     return
@@ -834,8 +872,8 @@ final class TranscriptionEngine {
         } else {
             // Parakeet
             if asrManager == nil || micVadManager == nil {
-                guard modelDownloadState == .ready else {
-                    lastError = "Models not downloaded."
+                guard isModelDownloaded(.parakeet) else {
+                    lastError = "Parakeet model not downloaded. Download it in Settings → Models or switch to another transcription model."
                     assetStatus = "Ready"; isRunning = false; return
                 }
                 assetStatus = "Loading models..."
