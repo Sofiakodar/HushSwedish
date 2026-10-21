@@ -321,8 +321,8 @@ struct ContentView: View {
             toolbarButton(icon: "arrow.up.doc", label: "Transcribe File") {
                 showFilePicker = true
             }
-            .disabled(isRunning)
-            .opacity(isRunning ? 0.35 : 1)
+            .disabled(isRunning || !transcriptionEngine.canStartRecording)
+            .opacity(isRunning || !transcriptionEngine.canStartRecording ? 0.35 : 1)
             Spacer()
             if settings.mainWindowMode == .attached {
                 toolbarButton(
@@ -391,6 +391,32 @@ struct ContentView: View {
 
     // MARK: - Model Download State
 
+    @ViewBuilder
+    private func modelRecommendationRow(title: String, detail: String, size: String?, isSelected: Bool) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 12))
+                .foregroundStyle(isSelected ? Color.accent1 : Color.fg3)
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(title)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.fg1)
+                    if let size, !size.isEmpty {
+                        Text(size)
+                            .font(.system(size: 9))
+                            .foregroundStyle(Color.fg3)
+                    }
+                }
+                Text(detail)
+                    .font(.system(size: 10))
+                    .foregroundStyle(Color.fg3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
     private var modelDownloadProgress: some View {
         VStack(spacing: 12) {
             ProgressView()
@@ -407,22 +433,46 @@ struct ContentView: View {
 
     private var modelDownloadPrompt: some View {
         let model = settings.transcriptionModel
-        return VStack(spacing: 12) {
+        return VStack(spacing: 14) {
             Image(systemName: "arrow.down.circle")
                 .font(.system(size: 28))
                 .foregroundStyle(Color.fg3)
-            Text("Download \(model.displayName)")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(Color.fg2)
-            Text("This model must be on disk before recording.\(model.sizeLabel.isEmpty ? "" : " (\(model.sizeLabel))")")
+            Text("Download a model to start")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(Color.fg1)
+            Text("\(model.displayName) is not on this Mac yet.\(model.sizeLabel.isEmpty ? "" : " (\(model.sizeLabel))")")
                 .font(.system(size: 11))
                 .foregroundStyle(Color.fg3)
                 .multilineTextAlignment(.center)
-            Text("Or choose Apple Speech or Whisper in Settings → Models — they do not require Parakeet.")
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Recommended")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color.fg2)
+                modelRecommendationRow(
+                    title: TranscriptionModel.whisperLargeV3.displayName,
+                    detail: "Swedish and English — best for HushSwedish meetings",
+                    size: TranscriptionModel.whisperLargeV3.sizeLabel,
+                    isSelected: model == .whisperLargeV3
+                )
+                modelRecommendationRow(
+                    title: TranscriptionModel.parakeet.displayName,
+                    detail: "English-only meetings",
+                    size: TranscriptionModel.parakeet.sizeLabel,
+                    isSelected: model == .parakeet
+                )
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(NSColor.controlBackgroundColor).opacity(0.6))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            Text("Pick a model in Settings → Models, then download it here or from that tab.")
                 .font(.system(size: 10))
                 .foregroundStyle(Color.fg3)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 8)
+
             Button("Download \(model.displayName)") {
                 Task { await transcriptionEngine.downloadModel(model) }
             }
@@ -433,6 +483,7 @@ struct ContentView: View {
             .padding(.vertical, 8)
             .background(Color.accent1.opacity(0.12))
             .clipShape(RoundedRectangle(cornerRadius: 8))
+
             if let error = transcriptionEngine.lastError {
                 Text(error)
                     .font(.system(size: 10))
@@ -597,6 +648,7 @@ struct ContentView: View {
 
     private func startSession(type: SessionType) {
         guard preRollPhase == nil else { return }
+        guard transcriptionEngine.canStartRecording else { return }
         guard settings.hasAcknowledgedDisclaimer else {
             transcriptionEngine.lastError = "Please complete the setup wizard and acknowledge the legal disclaimer before recording."
             return

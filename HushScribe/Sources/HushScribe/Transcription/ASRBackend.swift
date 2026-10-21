@@ -1,6 +1,6 @@
 import FluidAudio
 
-/// Abstraction over ASR engines (FluidAudio / WhisperKit / Apple Speech).
+/// Abstraction over ASR engines (FluidAudio / WhisperKit).
 protocol ASRBackend: Sendable {
     func transcribe(_ samples: [Float], source: AudioSource, onPartial: (@Sendable (String) -> Void)?) async throws -> String
 }

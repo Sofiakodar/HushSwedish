@@ -1,6 +1,5 @@
 import SwiftUI
 import AVFoundation
-import Speech
 import CoreGraphics
 
 struct OnboardingView: View {
@@ -10,7 +9,6 @@ struct OnboardingView: View {
     @State private var arrowOpacity: Double = 1
     @State private var micGranted = false
     @State private var screenGranted = false
-    @State private var speechGranted = false
     @State private var disclaimerAcknowledged = false
 
     private let steps: [(icon: String, title: String, body: String)] = [
@@ -148,13 +146,6 @@ struct OnboardingView: View {
                             granted: screenGranted,
                             action: requestScreen
                         )
-                        PermissionRow(
-                            icon: "waveform",
-                            label: "Speech Recognition",
-                            reason: "Required only when using the Apple Speech transcription model.",
-                            granted: speechGranted,
-                            action: requestSpeech
-                        )
                     }
                 }
 
@@ -242,7 +233,6 @@ struct OnboardingView: View {
     private func refreshStatuses() {
         micGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
         screenGranted = CGPreflightScreenCaptureAccess()
-        speechGranted = SFSpeechRecognizer.authorizationStatus() == .authorized
     }
 
     private func requestMic() {
@@ -266,19 +256,6 @@ struct OnboardingView: View {
         // Triggers the system prompt once; user may still need to toggle in Settings.
         CGRequestScreenCaptureAccess()
         openSettings("x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ScreenCapture")
-    }
-
-    private func requestSpeech() {
-        switch SFSpeechRecognizer.authorizationStatus() {
-        case .authorized:
-            speechGranted = true
-        case .notDetermined:
-            SFSpeechRecognizer.requestAuthorization { status in
-                DispatchQueue.main.async { speechGranted = status == .authorized }
-            }
-        default:
-            openSettings("x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_SpeechRecognition")
-        }
     }
 
     private func openSettings(_ urlString: String) {

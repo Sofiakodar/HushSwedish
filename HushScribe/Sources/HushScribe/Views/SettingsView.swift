@@ -499,11 +499,6 @@ private struct ModelRow: View {
         if isDownloading {
             ProgressView()
                 .controlSize(.small)
-        } else if model.isAppleSpeech {
-            // Built-in: no download needed, just Use or nothing
-            if !isActive {
-                useButton
-            }
         } else if isDownloaded {
             HStack(spacing: 10) {
                 Text(model.sizeLabel)

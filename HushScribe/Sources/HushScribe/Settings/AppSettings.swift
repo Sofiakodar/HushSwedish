@@ -34,7 +34,7 @@ enum MainWindowMode: String, CaseIterable {
     case detached
 }
 
-/// Language for the current recording session (Whisper explicit decode / Apple Speech locale).
+/// Language for the current recording session (Whisper explicit decode).
 enum SessionTranscriptionLanguage: String, CaseIterable, Codable, Identifiable {
     case swedish = "sv"
     case english = "en"
@@ -63,7 +63,6 @@ enum TranscriptionModel: String, CaseIterable {
     case parakeet = "parakeet"
     case whisperBase = "whisperBase"
     case whisperLargeV3 = "whisperLargeV3"
-    case appleSpeech = "appleSpeech"
 
     /// Used when `transcriptionModel` has never been saved (first launch) and after Settings → Reset.
     static let defaultSelection: TranscriptionModel = .whisperLargeV3
@@ -73,7 +72,6 @@ enum TranscriptionModel: String, CaseIterable {
         case .parakeet: return "Parakeet-TDT v3 (Multilingual)"
         case .whisperBase: return "Whisper Base"
         case .whisperLargeV3: return "Whisper Large v3"
-        case .appleSpeech: return "Apple Speech"
         }
     }
 
@@ -82,12 +80,10 @@ enum TranscriptionModel: String, CaseIterable {
         case .parakeet: return nil
         case .whisperBase: return "openai_whisper-base"
         case .whisperLargeV3: return "openai_whisper-large-v3"
-        case .appleSpeech: return nil
         }
     }
 
     var isWhisperKit: Bool { whisperModelID != nil }
-    var isAppleSpeech: Bool { self == .appleSpeech }
 
     var settingsDescription: String {
         switch self {
@@ -97,8 +93,6 @@ enum TranscriptionModel: String, CaseIterable {
             return "OpenAI Whisper Base via WhisperKit. Good for English. Smaller and faster than Large v3."
         case .whisperLargeV3:
             return "OpenAI Whisper Large v3 via WhisperKit. Best accuracy across 99 languages. Larger download."
-        case .appleSpeech:
-            return "macOS built-in speech recogniser. No download required. Requires a one-time permission prompt."
         }
     }
 
@@ -107,7 +101,6 @@ enum TranscriptionModel: String, CaseIterable {
         case .parakeet: return "~600 MB"
         case .whisperBase: return "~150 MB"
         case .whisperLargeV3: return "~1.5 GB"
-        case .appleSpeech: return ""
         }
     }
 }
@@ -238,7 +231,12 @@ final class AppSettings {
         let storedTimeout = defaults.integer(forKey: "silenceTimeoutSeconds")
         self.silenceTimeoutSeconds = storedTimeout > 0 ? storedTimeout : 120
         let storedModel = defaults.string(forKey: "transcriptionModel") ?? ""
-        self.transcriptionModel = TranscriptionModel(rawValue: storedModel) ?? .defaultSelection
+        if storedModel == "appleSpeech" {
+            self.transcriptionModel = .defaultSelection
+            defaults.set(TranscriptionModel.defaultSelection.rawValue, forKey: "transcriptionModel")
+        } else {
+            self.transcriptionModel = TranscriptionModel(rawValue: storedModel) ?? .defaultSelection
+        }
         let storedSummaryModel = defaults.string(forKey: "summaryModel") ?? ""
         self.summaryModel = SummaryModel(rawValue: storedSummaryModel) ?? .appleNL
         let storedTemp = defaults.double(forKey: "summaryTemperature")

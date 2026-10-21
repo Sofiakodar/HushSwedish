@@ -95,10 +95,6 @@ final class TranscriptionEngine {
     /// WhisperKit backend (loaded on demand when WhisperKit model is selected).
     private var whisperKitBackend: WhisperKitASRBackend?
 
-    /// Apple Speech backend (loaded on demand).
-    private var sfSpeechBackend: SFSpeechBackend?
-    private var sfSpeechSessionLanguage: SessionTranscriptionLanguage?
-
     /// Tracks the resolved mic device ID currently in use.
     private var currentMicDeviceID: AudioDeviceID = 0
 
@@ -133,17 +129,12 @@ final class TranscriptionEngine {
 
     /// Whether Call Capture / Voice Memo can start with the currently selected model.
     var canStartRecording: Bool {
-        switch selectedModel {
-        case .appleSpeech, .whisperBase, .whisperLargeV3:
-            return true
-        case .parakeet:
-            return isModelDownloaded(.parakeet)
-        }
+        isModelDownloaded(selectedModel)
     }
 
-    /// Main-window download gate — only Parakeet must be on disk before recording.
+    /// Main-window prompt when the selected model must be downloaded before recording.
     var showsModelDownloadGate: Bool {
-        selectedModel == .parakeet && !isModelDownloaded(.parakeet)
+        !isModelDownloaded(selectedModel)
     }
 
     /// Download in progress for the model the user selected in Settings.
@@ -153,8 +144,6 @@ final class TranscriptionEngine {
             return modelDownloadState == .downloading
         case .whisperBase, .whisperLargeV3:
             return downloadingModel == selectedModel
-        case .appleSpeech:
-            return false
         }
     }
 
@@ -228,24 +217,20 @@ final class TranscriptionEngine {
         case .whisperBase, .whisperLargeV3:
             guard let modelID = model.whisperModelID else { return false }
             return FileManager.default.fileExists(atPath: Self.whisperCacheURL(for: modelID).path)
-        case .appleSpeech:
-            return true
         }
     }
 
-    /// Pre-downloads a model without starting a session. No-op for Apple Speech.
+    /// Pre-downloads a model without starting a session.
     func downloadModel(_ model: TranscriptionModel) async {
         switch model {
         case .parakeet:
             await downloadModels()
         case .whisperBase, .whisperLargeV3:
             await preDownloadWhisperKit(model)
-        case .appleSpeech:
-            break
         }
     }
 
-    /// Removes a downloaded model from disk. No-op if running or Apple Speech.
+    /// Removes a downloaded model from disk. No-op while a session is running.
     func removeModel(_ model: TranscriptionModel) {
         guard !isRunning else { return }
         switch model {
@@ -260,8 +245,6 @@ final class TranscriptionEngine {
             guard let modelID = model.whisperModelID else { return }
             try? FileManager.default.removeItem(at: Self.whisperCacheURL(for: modelID))
             if selectedModel == model { whisperKitBackend = nil }
-        case .appleSpeech:
-            break
         }
     }
 
@@ -293,11 +276,7 @@ final class TranscriptionEngine {
         syncParakeetDownloadState()
         // Clear backends that don't match the new model so they reload on next start().
         if !model.isWhisperKit { whisperKitBackend = nil }
-        if !model.isAppleSpeech {
-            sfSpeechBackend = nil
-            sfSpeechSessionLanguage = nil
-        }
-        if model.isWhisperKit || model.isAppleSpeech { asrManager = nil }
+        if model.isWhisperKit { asrManager = nil }
     }
 
     private func resolveWhisperBackend(sessionLanguage: SessionTranscriptionLanguage) async throws -> WhisperKitASRBackend {
@@ -358,16 +337,6 @@ final class TranscriptionEngine {
         }
     }
 
-    private func resolveSFSpeechBackend(sessionLanguage: SessionTranscriptionLanguage) throws -> SFSpeechBackend {
-        if let existing = sfSpeechBackend, sfSpeechSessionLanguage == sessionLanguage {
-            return existing
-        }
-        let backend = try SFSpeechBackend(locale: sessionLanguage.locale)
-        sfSpeechBackend = backend
-        sfSpeechSessionLanguage = sessionLanguage
-        return backend
-    }
-
     func start(
         sessionLanguage: SessionTranscriptionLanguage,
         inputDeviceID: AudioDeviceID = 0,
@@ -402,36 +371,6 @@ final class TranscriptionEngine {
             } catch {
                 let msg = "Failed to load WhisperKit: \(error.localizedDescription)"
                 diagLog("[ENGINE-WK-FAIL] \(msg)")
-                lastError = msg
-                assetStatus = "Ready"
-                isRunning = false
-                return
-            }
-        } else if selectedModel.isAppleSpeech {
-            // Apple Speech path: request authorization, load VAD independently, then init recognizer.
-            let authorized = await SFSpeechBackend.requestAuthorization()
-            guard authorized else {
-                lastError = "Speech recognition permission denied. Enable it in System Settings > Privacy & Security > Speech Recognition."
-                assetStatus = "Ready"
-                isRunning = false
-                return
-            }
-            do {
-                try await ensureVADManagers(sysVadThreshold: sysVadThreshold)
-            } catch {
-                let msg = "Failed to load VAD: \(error.localizedDescription)"
-                diagLog("[ENGINE-VAD-FAIL] \(msg)")
-                lastError = msg
-                assetStatus = "Ready"
-                isRunning = false
-                return
-            }
-            diagLog("[ENGINE-SF] initializing Apple Speech recognizer...")
-            do {
-                asrBackend = try resolveSFSpeechBackend(sessionLanguage: sessionLanguage)
-            } catch {
-                let msg = "Failed to initialize Apple Speech: \(error.localizedDescription)"
-                diagLog("[ENGINE-SF-FAIL] \(msg)")
                 lastError = msg
                 assetStatus = "Ready"
                 isRunning = false
@@ -597,8 +536,6 @@ final class TranscriptionEngine {
         let backend: any ASRBackend
         if selectedModel.isWhisperKit, let wk = whisperKitBackend {
             backend = wk
-        } else if selectedModel.isAppleSpeech, let sf = sfSpeechBackend {
-            backend = sf
         } else if let asr = asrManager {
             backend = FluidAudioASRBackend(manager: asr)
         } else {
@@ -667,8 +604,6 @@ final class TranscriptionEngine {
         let backend: any ASRBackend
         if selectedModel.isWhisperKit, let wk = whisperKitBackend {
             backend = wk
-        } else if selectedModel.isAppleSpeech, let sf = sfSpeechBackend {
-            backend = sf
         } else if let asr = asrManager {
             backend = FluidAudioASRBackend(manager: asr)
         } else {
@@ -925,27 +860,6 @@ final class TranscriptionEngine {
                 asrBackend = try await resolveWhisperBackend(sessionLanguage: sessionLanguage)
             } catch {
                 lastError = "Failed to load WhisperKit: \(error.localizedDescription)"
-                assetStatus = "Ready"; isRunning = false; return
-            }
-        } else if selectedModel.isAppleSpeech {
-            let authorized = await SFSpeechBackend.requestAuthorization()
-            guard authorized else {
-                lastError = "Speech recognition permission denied."
-                assetStatus = "Ready"; isRunning = false; return
-            }
-            if micVadManager == nil {
-                assetStatus = "Loading VAD model..."
-                do {
-                    micVadManager = try await VadManager()
-                } catch {
-                    lastError = "Failed to load VAD: \(error.localizedDescription)"
-                    assetStatus = "Ready"; isRunning = false; return
-                }
-            }
-            do {
-                asrBackend = try resolveSFSpeechBackend(sessionLanguage: sessionLanguage)
-            } catch {
-                lastError = "Failed to initialize Apple Speech: \(error.localizedDescription)"
                 assetStatus = "Ready"; isRunning = false; return
             }
         } else {

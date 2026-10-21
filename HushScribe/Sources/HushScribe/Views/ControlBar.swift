@@ -201,7 +201,7 @@ struct ControlBar: View {
             .labelsHidden()
 
             if transcriptionModel == .parakeet {
-                Text("Parakeet auto-detects language. This setting applies to Whisper and Apple Speech.")
+                Text("Parakeet auto-detects language. This setting applies to Whisper models.")
                     .font(.system(size: 9))
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)

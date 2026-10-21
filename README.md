@@ -87,8 +87,7 @@ Nothing is sent to the internet for transcription or summarization; models downl
 |-------|--------|
 | **Whisper Large v3** | Default; use with session **SV** for Swedish meetings |
 | Whisper Base | Smaller WhisperKit model |
-| Parakeet-TDT v3 | Fast, auto-detect (25 languages) |
-| Apple Speech | Built-in; respects session locale |
+| Parakeet-TDT v3 | English-only meetings; auto-detect |
 
 ## Summary models (optional)
 
@@ -127,7 +126,6 @@ On-device ASR and summaries; no analytics or telemetry in the app design; **text
 |------------|------|
 | Microphone | Always |
 | Screen & system audio | **Call Capture** only |
-| Speech Recognition | **Apple Speech** model only |
 
 ## Limitations
 
