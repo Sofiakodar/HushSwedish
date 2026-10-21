@@ -242,10 +242,7 @@ struct ContentView: View {
 
     private var topBar: some View {
         HStack(spacing: 0) {
-            Text(AppIdentity.wordmark)
-                .font(.system(size: 13, weight: .heavy))
-                .tracking(2)
-                .foregroundStyle(logoFlash ? Color.accent1 : Color.fg1)
+            HushSwedishHeaderWordmark(highlighted: logoFlash)
                 .onTapGesture(count: 3) {
                     guard isRunning else { return }
                     withAnimation(.easeIn(duration: 0.1)) { logoFlash = true }
@@ -694,11 +691,7 @@ struct ContentView: View {
         let titleForSession = customTitle.isEmpty ? nil : customTitle
 
         Task {
-            for count in stride(from: 3, through: 1, by: -1) {
-                preRollPhase = .countdown(count)
-                try? await Task.sleep(for: .seconds(1))
-            }
-            preRollPhase = .preparing
+            preRollPhase = .gettingReady
 
             transcriptionEngine.lastError = nil
             await transcriptionEngine.warmUpForRecording(
@@ -912,11 +905,28 @@ struct ContentView: View {
     }
 }
 
+// MARK: - Header wordmark
+
+private struct HushSwedishHeaderWordmark: View {
+    var highlighted: Bool
+
+    private static let swedishBlue = Color(red: 0.0, green: 0.416, blue: 0.655)
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Text("Hush")
+                .foregroundStyle(highlighted ? Color.accent1 : Color.fg1)
+            Text("Swedish")
+                .foregroundStyle(highlighted ? Color.accent1 : Self.swedishBlue)
+        }
+        .font(.system(size: 14, weight: .semibold, design: .rounded))
+    }
+}
+
 // MARK: - Pre-roll countdown
 
 private enum PreRollPhase: Equatable {
-    case countdown(Int)
-    case preparing
+    case gettingReady
 }
 
 private struct PreRollOverlay: View {
@@ -928,26 +938,18 @@ private struct PreRollOverlay: View {
                 .ignoresSafeArea()
             VStack(spacing: 16) {
                 switch phase {
-                case .countdown(let n):
-                    Text("\(n)")
-                        .font(.system(size: 88, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .contentTransition(.numericText())
-                    Text("Get ready — start speaking after “Transcribing…”")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.85))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                case .preparing:
-                    Text("Transcribing…")
-                        .font(.system(size: 40, weight: .semibold, design: .rounded))
+                case .gettingReady:
+                    Text("Getting ready…")
+                        .font(.system(size: 28, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white)
                     ProgressView()
                         .controlSize(.large)
                         .tint(.white)
-                    Text("Starting capture")
+                    Text("Wait until transcribing starts, then begin speaking.")
                         .font(.system(size: 13))
                         .foregroundStyle(.white.opacity(0.85))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
                 }
             }
         }

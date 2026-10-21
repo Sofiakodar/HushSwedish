@@ -634,15 +634,6 @@ final class TranscriptionEngine {
         assetStatus = "Transcribing (\(selectedModel.displayName))"
         diagLog("[ENGINE-6] all transcription tasks started")
 
-        // Reset capture pipelines shortly after start to flush any residual audio state.
-        // Use Task.detached so TranscriptionEngine is not captured as the executor context,
-        // avoiding a use-after-free if AttributeGraph reclaims the actor's memory mid-sleep.
-        let startDeviceID = inputDeviceID
-        Task.detached { [weak self] in
-            try? await Task.sleep(for: .seconds(1))
-            await self?.resetCapture(inputDeviceID: startDeviceID)
-        }
-
         // Install CoreAudio listener for default input device changes
         installDefaultDeviceListener()
     }
