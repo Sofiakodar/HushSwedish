@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>On-device meeting & voice transcription for macOS — built for Swedish and English.</strong><br/>
-  No cloud. No API keys. Markdown in your vault.
+  Pricacy first. No cloud. No API keys. Markdown transcripts and summaries - perfect for Obsidian.
 </p>
 
 <p align="center">
