@@ -270,6 +270,8 @@ struct OnboardingView: View {
     private func finish() {
         isPresented = false
         guard !isReplay else { return }
+        // Clicking the menu-bar icon should open the recording popover, not a text menu.
+        settings.mainWindowMode = .attached
         NSApp.windows.first { !($0 is NSPanel) && $0.level == .normal }?.orderOut(nil)
         NSApp.setActivationPolicy(.accessory)
     }

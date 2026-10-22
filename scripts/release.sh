@@ -33,6 +33,27 @@ CASK="$ROOT_DIR/Casks/hushscribe.rb"
 
 mkdir -p "$APP_DIR/Contents/MacOS"
 
+# Xcode 26 ships `metal` as a stub. SwiftPM compiles mlx-swift .metal files during
+# `swift build`, so TOOLCHAINS must be set before that — not only for the later metallib step.
+ensure_metal_toolchain() {
+  if xcrun -sdk macosx metal --version >/dev/null 2>&1; then
+    return 0
+  fi
+  local id
+  id=$(xcodebuild -showComponent MetalToolchain 2>/dev/null | awk -F': ' '/Toolchain Identifier/{print $2; exit}')
+  if [[ -n "$id" ]] && TOOLCHAINS="$id" xcrun -sdk macosx metal --version >/dev/null 2>&1; then
+    export TOOLCHAINS="$id"
+    return 0
+  fi
+  echo "The Metal toolchain is not installed, so mlx.metallib cannot be built."
+  echo "Without it, loading a summary model quits the app."
+  echo "Install it, then rerun this script:"
+  echo "  xcodebuild -downloadComponent MetalToolchain"
+  exit 1
+}
+
+ensure_metal_toolchain
+
 cd "$SWIFT_DIR"
 set -o pipefail
 if ! swift build -c release 2>&1; then
@@ -51,20 +72,6 @@ rm -f "$DMG_NAME"
 rm -rf "$APP_BUNDLE"
 
 echo "--- Step 1.5: Compiling MLX Metal shaders ---"
-# Xcode 26 ships `metal` as a stub. The real compiler is a separate component, and
-# xcrun only finds it when TOOLCHAINS names that component.
-if ! xcrun -sdk macosx metal --version >/dev/null 2>&1; then
-  METAL_TOOLCHAIN_ID=$(xcodebuild -showComponent MetalToolchain 2>/dev/null | awk -F': ' '/Toolchain Identifier/{print $2; exit}')
-  if [[ -n "$METAL_TOOLCHAIN_ID" ]] && TOOLCHAINS="$METAL_TOOLCHAIN_ID" xcrun -sdk macosx metal --version >/dev/null 2>&1; then
-    export TOOLCHAINS="$METAL_TOOLCHAIN_ID"
-  else
-    echo "The Metal toolchain is not installed, so mlx.metallib cannot be built."
-    echo "Without it, loading a summary model quits the app."
-    echo "Install it, then rerun this script:"
-    echo "  xcodebuild -downloadComponent MetalToolchain"
-    exit 1
-  fi
-fi
 METAL_DIR=".build/checkouts/mlx-swift/Source/Cmlx/mlx-generated/metal"
 METAL_WORK=$(mktemp -d)
 shopt -s nullglob

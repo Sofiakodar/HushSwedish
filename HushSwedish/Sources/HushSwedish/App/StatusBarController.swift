@@ -159,18 +159,14 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     }
 
     private func applyMode(_ mode: MainWindowMode) {
-        guard let statusItem else { return }
-        switch mode {
-        case .attached:
-            statusItem.menu = nil
-            statusItem.button?.target = self
-            statusItem.button?.action = #selector(statusButtonClicked)
-        case .detached:
-            statusItem.button?.action = nil
-            statusItem.button?.target = nil
-            let menu = NSMenu()
-            menu.delegate = self
-            statusItem.menu = menu
+        guard let statusItem, let button = statusItem.button else { return }
+        // Left-click must open the recording UI. Assigning statusItem.menu would
+        // steal that click and show the extra menu instead.
+        statusItem.menu = nil
+        button.target = self
+        button.action = #selector(statusButtonClicked)
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        if mode == .detached {
             popover?.performClose(nil)
             popover = nil
         }
@@ -178,7 +174,9 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     private func showMainWindow() {
         NSApp.setActivationPolicy(.regular)
-        mainWindow?.makeKeyAndOrderFront(nil)
+        let window = mainWindow
+            ?? NSApp.windows.first(where: { !($0 is NSPanel) && $0.level == .normal })
+        window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -193,12 +191,33 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     @objc private func statusButtonClicked() {
         guard onboardingComplete else { return }
-        guard let button = statusItem?.button else { return }
-        if let popover, popover.isShown {
-            popover.performClose(nil)
-        } else {
-            openPopover(relativeTo: button)
+        if isSecondaryClick {
+            showStatusMenu()
+            return
         }
+        switch settings?.mainWindowMode ?? .attached {
+        case .attached:
+            guard let button = statusItem?.button else { return }
+            if let popover, popover.isShown {
+                popover.performClose(nil)
+            } else {
+                openPopover(relativeTo: button)
+            }
+        case .detached:
+            showMainWindow()
+        }
+    }
+
+    private var isSecondaryClick: Bool {
+        guard let event = NSApp.currentEvent else { return false }
+        return event.type == .rightMouseUp || event.modifierFlags.contains(.control)
+    }
+
+    private func showStatusMenu() {
+        guard let button = statusItem?.button else { return }
+        let menu = NSMenu()
+        buildMenuItems(into: menu)
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 2), in: button)
     }
 
     private func openPopover(relativeTo button: NSButton) {

@@ -620,7 +620,7 @@ struct SummarizeView: View {
         Task {
             do {
                 let content = try await Task.detached(priority: .userInitiated) {
-                    try Self.readFileContents(at: url)
+                    try readTranscriptFileContents(at: url)
                 }.value
                 guard generation == loadGeneration else { return }
                 let raw = SummaryService.extractTranscript(from: content)
@@ -635,35 +635,6 @@ struct SummarizeView: View {
                 transcriptLoadError = error.localizedDescription
                 isLoadingTranscript = false
             }
-        }
-    }
-
-    private static func readFileContents(at url: URL) throws -> String {
-        let accessed = url.startAccessingSecurityScopedResource()
-        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
-
-        var coordinatorError: NSError?
-        var readResult: Result<String, Error>?
-        NSFileCoordinator().coordinate(readingItemAt: url, options: .withoutChanges, error: &coordinatorError) { readURL in
-            do {
-                let data = try Data(contentsOf: readURL, options: [.mappedIfSafe])
-                if let text = String(data: data, encoding: .utf8) {
-                    readResult = .success(text)
-                } else {
-                    readResult = .success(String(decoding: data, as: UTF8.self))
-                }
-            } catch {
-                readResult = .failure(error)
-            }
-        }
-        if let coordinatorError { throw coordinatorError }
-        switch readResult {
-        case .success(let text):
-            return text
-        case .failure(let error):
-            throw error
-        case nil:
-            throw CocoaError(.fileReadUnknown)
         }
     }
 
@@ -1111,6 +1082,16 @@ private struct ParsedBubble: View {
             .padding(.vertical, 4)
         }
     }
+}
+
+nonisolated private func readTranscriptFileContents(at url: URL) throws -> String {
+    let accessed = url.startAccessingSecurityScopedResource()
+    defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+    let data = try Data(contentsOf: url, options: [.mappedIfSafe])
+    if let text = String(data: data, encoding: .utf8) {
+        return text
+    }
+    return String(decoding: data, as: UTF8.self)
 }
 
 // MARK: - Vault transcript listing
