@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOGO="$ROOT_DIR/assets/hushswedish-logo.svg"
-ASSETS="$ROOT_DIR/HushScribe/Sources/HushScribe/Assets"
+ASSETS="$ROOT_DIR/HushSwedish/Sources/HushSwedish/Assets"
 WORK="$ASSETS/.icon-build"
 ICONSET="$WORK/AppIcon.iconset"
 

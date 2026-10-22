@@ -1,6 +1,6 @@
 # Build artifacts
-HushScribe/.build/
-HushScribe/.swiftpm/
+HushSwedish/.build/
+HushSwedish/.swiftpm/
 dist/
 build/
 .claude
@@ -14,6 +14,6 @@ build/
 
 # Misc
 *.spec
-HushScribe/HushScribe.dmg
+HushSwedish/HushSwedish.dmg
 todo.md
 docs/local-privacy-audit.md

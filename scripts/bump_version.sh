@@ -2,7 +2,7 @@
 set -e
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-PLIST="$REPO/HushScribe/Sources/HushScribe/Info.plist"
+PLIST="$REPO/HushSwedish/Sources/HushSwedish/Info.plist"
 
 
 

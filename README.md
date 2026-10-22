@@ -81,7 +81,7 @@ Full details: [docs/changes-from-hushscribe.md](docs/changes-from-hushscribe.md)
 
 | | |
 |---|---|
-| **Xcode** | **26+** with **Swift 6.2** (see `HushScribe/Package.swift`) |
+| **Xcode** | **26+** with **Swift 6.2** (see `HushSwedish/Package.swift`) |
 | **Metal Toolchain** | Required to bundle `mlx.metallib` for **AI summaries** — install with `xcodebuild -downloadComponent MetalToolchain` if `scripts/release.sh` reports it missing. Transcription-only use does not need MLX at runtime until you generate a summary. |
 
 ## Install (build from source)
@@ -98,9 +98,9 @@ open dist/HushSwedish.app
 Developer-only binary:
 
 ```bash
-cd HushScribe
+cd HushSwedish
 swift build -c release
-# HushScribe/.build/release/HushSwedish
+# HushSwedish/.build/release/HushSwedish
 ```
 
 Signed DMG / notarization: your Apple Developer ID in `scripts/release.sh`. Layout: [ARCHITECTURE.md](ARCHITECTURE.md).

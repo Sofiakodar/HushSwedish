@@ -100,7 +100,7 @@ Apply the same parameter to `startFileTranscription(url:sessionLanguage:)` if fi
 
 ### 2. `WhisperKitASRBackend`
 
-**File:** `HushScribe/Sources/HushScribe/Transcription/WhisperKitBackend.swift`
+**File:** `HushSwedish/Sources/HushSwedish/Transcription/WhisperKitBackend.swift`
 
 - Add `private let languageCode: String` (or `SessionTranscriptionLanguage`) on init.
 - On each `transcribe` call:

@@ -22,7 +22,7 @@ let package = Package(
                 .product(name: "Tokenizers", package: "swift-transformers"),
                 .product(name: "Hub", package: "swift-transformers"),
             ],
-            path: "Sources/HushScribe",
+            path: "Sources/HushSwedish",
             exclude: ["Info.plist", "HushScribe.entitlements", "Assets"]
         ),
     ]

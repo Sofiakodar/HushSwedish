@@ -21,14 +21,14 @@ PROFILE_NAME="HushSwedish"
 
 # Paths
 ROOT_DIR="$(pwd)"
-SWIFT_DIR="$ROOT_DIR/HushScribe"
+SWIFT_DIR="$ROOT_DIR/HushSwedish"
 APP_BUNDLE="$ROOT_DIR/dist/$APP_NAME.app"
 CONTENTS="$APP_BUNDLE/Contents"
 DMG_NAME="dist/${APP_NAME}.dmg"
-ENTITLEMENTS="$SWIFT_DIR/Sources/HushScribe/HushScribe.entitlements"
+ENTITLEMENTS="$SWIFT_DIR/Sources/HushSwedish/HushScribe.entitlements"
 BINARY_PATH=".build/release/HushSwedish"
 APP_DIR="$ROOT_DIR/dist/$APP_NAME.app"
-ICON_PATH="$SWIFT_DIR/Sources/HushScribe/Assets/AppIcon.icns"
+ICON_PATH="$SWIFT_DIR/Sources/HushSwedish/Assets/AppIcon.icns"
 CASK="$ROOT_DIR/Casks/hushscribe.rb"
 
 mkdir -p "$APP_DIR/Contents/MacOS"
@@ -102,14 +102,14 @@ fi
 
 LOGO_PATH="$ROOT_DIR/assets/hushswedish-logo.svg"
 if [[ ! -f "$LOGO_PATH" ]]; then
-  LOGO_PATH="$SWIFT_DIR/Sources/HushScribe/Assets/logo.svg"
+  LOGO_PATH="$SWIFT_DIR/Sources/HushSwedish/Assets/logo.svg"
 fi
 if [[ -f "$LOGO_PATH" ]]; then
   cp "$LOGO_PATH" "$APP_BUNDLE/Contents/Resources/logo.svg"
   echo "Logo copied"
 fi
 
-cp "$SWIFT_DIR/Sources/HushScribe/Info.plist" "$CONTENTS/Info.plist"
+cp "$SWIFT_DIR/Sources/HushSwedish/Info.plist" "$CONTENTS/Info.plist"
 
 echo "--- Step 3: Deep Signing with Hardened Runtime ---"
 if [[ -z "$DEVELOPER_ID" ]]; then

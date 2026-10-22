@@ -22,7 +22,7 @@
 ## Source Tree
 
 ```
-HushScribe/Sources/HushScribe/
+HushSwedish/Sources/HushSwedish/
 ├── App/
 │   └── HushScribeApp.swift             # App entry point, menu bar setup
 ├── Audio/
@@ -72,7 +72,7 @@ All scripts live in `scripts/` and are run from the **repository root**.
 
 ### `scripts/bump_version.sh`
 
-Bumps `CFBundleShortVersionString` and `CFBundleVersion` in `HushScribe/Sources/HushScribe/Info.plist`.
+Bumps `CFBundleShortVersionString` and `CFBundleVersion` in `HushSwedish/Sources/HushSwedish/Info.plist`.
 
 ```bash
 scripts/bump_version.sh patch    # 3.5.0 → 3.5.1
@@ -86,7 +86,7 @@ scripts/bump_version.sh 3.5.2    # explicit version
 Full release pipeline. Requires a valid Developer ID certificate and a stored `notarytool` keychain profile named `HushScribe`.
 
 Steps:
-1. `swift build -c release` inside `HushScribe/`
+1. `swift build -c release` inside `HushSwedish/`
 2. Compile MLX Metal shaders into `mlx.metallib`
 3. Assemble `dist/HushScribe.app` (binary, metallib, icon, logo, Info.plist)
 4. Deep-sign all dylibs, frameworks, and the bundle with hardened runtime
@@ -134,7 +134,7 @@ scripts/release.sh test
 
 **Dev build** — fast iteration, no packaging:
 ```bash
-cd HushScribe && swift build
+cd HushSwedish && swift build
 ```
 
 **Bump version before releasing:**
