@@ -95,6 +95,17 @@ final class TranscriptionEngine {
     /// WhisperKit backend (loaded on demand when WhisperKit model is selected).
     private var whisperKitBackend: WhisperKitASRBackend?
 
+    /// ASR backend pinned for the active session (mic/sys/file). Survives capture restarts.
+    private var sessionASRBackend: (any ASRBackend)?
+    private(set) var activeSessionLanguage: SessionTranscriptionLanguage?
+    /// True while ContentView is in getting-ready / starting (before `isRunning`).
+    private var isSessionPrepareActive = false
+
+    enum ModelWarmUpContext: Sendable {
+        case idleUI
+        case sessionStart
+    }
+
     /// Tracks the resolved mic device ID currently in use.
     private var currentMicDeviceID: AudioDeviceID = 0
 
@@ -155,6 +166,22 @@ final class TranscriptionEngine {
 
     private var canOffloadModelsFromMemory: Bool {
         !isRunning && !isDrainingSpeech && !isActivelyDownloadingModels && !isTranscriptionUIVisible
+            && !isSessionPrepareActive
+    }
+
+    func beginSessionPrepare() {
+        isSessionPrepareActive = true
+    }
+
+    func endSessionPrepare() {
+        isSessionPrepareActive = false
+    }
+
+    private func backendForLiveSession() -> (any ASRBackend)? {
+        if let sessionASRBackend { return sessionASRBackend }
+        if selectedModel.isWhisperKit, let whisperKitBackend { return whisperKitBackend }
+        if let asr = asrManager { return FluidAudioASRBackend(manager: asr) }
+        return nil
     }
 
     func releaseLoadedModels(reason: String) {
@@ -346,7 +373,9 @@ final class TranscriptionEngine {
         do {
             let wk = try await WhisperKit(model: modelID)
             if selectedModel == model {
-                whisperKitBackend = WhisperKitASRBackend(wk, languageCode: SessionTranscriptionLanguage.swedish.whisperLanguageCode)
+                let storedLang = UserDefaults.standard.string(forKey: "lastSessionTranscriptionLanguage")
+                let lang = SessionTranscriptionLanguage(rawValue: storedLang ?? "") ?? .swedish
+                whisperKitBackend = WhisperKitASRBackend(wk, languageCode: lang.whisperLanguageCode)
             }
         } catch {
             lastError = "Failed to download \(model.displayName): \(error.localizedDescription)"
@@ -403,8 +432,13 @@ final class TranscriptionEngine {
     }
 
     /// Loads ASR + VAD into memory when the selected model is already on disk.
-    func warmUpForRecording(sessionLanguage: SessionTranscriptionLanguage, sysVadThreshold: Double = 0.92) async {
+    func warmUpForRecording(
+        sessionLanguage: SessionTranscriptionLanguage,
+        sysVadThreshold: Double = 0.92,
+        context: ModelWarmUpContext = .idleUI
+    ) async {
         guard !isRunning else { return }
+        if context == .idleUI, isSessionPrepareActive { return }
         cancelIdleModelUnload()
         guard isModelDownloaded(selectedModel) else { return }
 
@@ -494,6 +528,9 @@ final class TranscriptionEngine {
                 isRunning = false
                 return
             }
+            sessionASRBackend = asrBackend
+            activeSessionLanguage = sessionLanguage
+            diagLog("[ENGINE-WK] session locked to language=\(sessionLanguage.rawValue)")
         } else {
             // Parakeet path: preserve the original loading order — ASR first, then VAD.
             // VadManager depends on the FluidAudio model bundle being available.
@@ -533,6 +570,8 @@ final class TranscriptionEngine {
             }
             guard let asr = asrManager else { return }
             asrBackend = FluidAudioASRBackend(manager: asr)
+            sessionASRBackend = asrBackend
+            activeSessionLanguage = sessionLanguage
         }
 
         guard let micVadManager, let sysVadManager else { return }
@@ -642,14 +681,7 @@ final class TranscriptionEngine {
     /// Pass the raw setting value (0 = system default, or a specific AudioDeviceID).
     func restartMic(inputDeviceID: AudioDeviceID) {
         guard isRunning, let micVadManager else { return }
-        let backend: any ASRBackend
-        if selectedModel.isWhisperKit, let wk = whisperKitBackend {
-            backend = wk
-        } else if let asr = asrManager {
-            backend = FluidAudioASRBackend(manager: asr)
-        } else {
-            return
-        }
+        guard let backend = backendForLiveSession() else { return }
 
         // Only update user selection when explicitly changed (not from OS listener)
         if inputDeviceID != 0 || userSelectedDeviceID != 0 {
@@ -710,12 +742,7 @@ final class TranscriptionEngine {
         diagLog("[ENGINE-RESET] full capture reset requested")
         lastError = nil
 
-        let backend: any ASRBackend
-        if selectedModel.isWhisperKit, let wk = whisperKitBackend {
-            backend = wk
-        } else if let asr = asrManager {
-            backend = FluidAudioASRBackend(manager: asr)
-        } else {
+        guard let backend = backendForLiveSession() else {
             diagLog("[ENGINE-RESET] no backend available, aborting")
             return
         }
@@ -940,6 +967,8 @@ final class TranscriptionEngine {
         isRunning = false
         isPaused = false
         isDrainingSpeech = false
+        sessionASRBackend = nil
+        activeSessionLanguage = nil
         assetStatus = "Ready"
     }
 
@@ -972,6 +1001,9 @@ final class TranscriptionEngine {
                 lastError = "Failed to load WhisperKit: \(error.localizedDescription)"
                 assetStatus = "Ready"; isRunning = false; return
             }
+            sessionASRBackend = asrBackend
+            activeSessionLanguage = sessionLanguage
+            diagLog("[ENGINE-WK] file session locked to language=\(sessionLanguage.rawValue)")
         } else {
             // Parakeet
             if asrManager == nil || micVadManager == nil {
@@ -993,6 +1025,8 @@ final class TranscriptionEngine {
             }
             guard let asr = asrManager else { isRunning = false; return }
             asrBackend = FluidAudioASRBackend(manager: asr)
+            sessionASRBackend = asrBackend
+            activeSessionLanguage = sessionLanguage
         }
 
         guard let vadManager = micVadManager else { isRunning = false; return }

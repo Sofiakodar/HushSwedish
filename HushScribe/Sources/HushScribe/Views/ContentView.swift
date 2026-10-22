@@ -786,11 +786,17 @@ struct ContentView: View {
 
         Task {
             preRollPhase = .gettingReady
+            transcriptionEngine.beginSessionPrepare()
+            defer {
+                transcriptionEngine.endSessionPrepare()
+                if preRollPhase == .gettingReady { preRollPhase = nil }
+            }
 
             transcriptionEngine.lastError = nil
             await transcriptionEngine.warmUpForRecording(
                 sessionLanguage: sessionLanguage,
-                sysVadThreshold: settings.sysVadThreshold
+                sysVadThreshold: settings.sysVadThreshold,
+                context: .sessionStart
             )
 
             await sessionStore.startSession()

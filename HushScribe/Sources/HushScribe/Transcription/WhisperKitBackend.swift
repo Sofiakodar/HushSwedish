@@ -18,7 +18,10 @@ final class WhisperKitASRBackend: @unchecked Sendable, ASRBackend {
             detectLanguage: false,
             withoutTimestamps: true
         )
+        diagLog("[WHISPER] transcribe lang=\(languageCode) source=\(source) samples=\(samples.count)")
         let results = try await whisperKit.transcribe(audioArray: samples, decodeOptions: options)
-        return results.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = results.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+        diagLog("[WHISPER] result lang=\(languageCode) text=\(text.prefix(80))")
+        return text
     }
 }

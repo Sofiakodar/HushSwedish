@@ -282,6 +282,7 @@ struct ControlBar: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            .disabled(isPreRollActive)
 
             if transcriptionModel == .parakeet {
                 Text("Parakeet auto-detects language. This setting applies to Whisper models.")
