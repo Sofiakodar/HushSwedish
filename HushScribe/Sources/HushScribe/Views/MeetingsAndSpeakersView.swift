@@ -12,9 +12,6 @@ struct MeetingsAndSpeakersView: View {
             MeetingsTemplatesTab(store: store)
                 .tabItem { Label("Meetings", systemImage: "calendar") }
                 .tag(1)
-            GlossaryTab(store: store)
-                .tabItem { Label("Glossary", systemImage: "textformat") }
-                .tag(2)
         }
         .frame(minWidth: 520, minHeight: 420)
     }
@@ -283,75 +280,5 @@ private struct WeekdayPicker: View {
                 .overlay(Circle().stroke(Color(NSColor.separatorColor)))
             }
         }
-    }
-}
-
-// MARK: - Glossary
-
-private struct GlossaryTab: View {
-    @Bindable var store: MeetingProfileStore
-    @State private var newCanonical = ""
-    @State private var newVariants = ""
-    @State private var testInput = ""
-    @State private var testOutput = ""
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Fix product names and acronyms in saved transcript lines (global, all session types).")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal)
-
-            HStack(alignment: .top) {
-                VStack(alignment: .leading) {
-                    TextField("Canonical form", text: $newCanonical)
-                        .textFieldStyle(.roundedBorder)
-                    TextField("Mis-hearings (comma-separated)", text: $newVariants)
-                        .textFieldStyle(.roundedBorder)
-                }
-                Button("Add") {
-                    let variants = newVariants.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-                    store.addGlossaryEntry(canonical: newCanonical, variants: variants)
-                    newCanonical = ""
-                    newVariants = ""
-                }
-                .disabled(newCanonical.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-            .padding(.horizontal)
-
-            List {
-                ForEach(store.glossaryEntries) { entry in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(entry.canonical)
-                            .font(.system(size: 13, weight: .medium))
-                        if !entry.variants.isEmpty {
-                            Text(entry.variants.joined(separator: " · "))
-                                .font(.system(size: 10))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .onDelete { offsets in
-                    for i in offsets {
-                        store.deleteGlossaryEntry(id: store.glossaryEntries[i].id)
-                    }
-                }
-            }
-
-            GroupBox("Test sentence") {
-                TextField("Type sample text", text: $testInput)
-                    .textFieldStyle(.roundedBorder)
-                Button("Apply glossary") {
-                    testOutput = store.applyGlossary(to: testInput)
-                }
-                if !testOutput.isEmpty {
-                    Text(testOutput)
-                        .font(.system(size: 11))
-                        .textSelection(.enabled)
-                }
-            }
-            .padding(.horizontal)
-        }
-        .padding(.vertical, 12)
     }
 }

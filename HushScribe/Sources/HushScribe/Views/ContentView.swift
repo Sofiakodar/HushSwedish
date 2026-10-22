@@ -734,6 +734,19 @@ struct ContentView: View {
         settings.sessionTranscriptNameUserEdited = true
     }
 
+    /// Call Capture / file import: use meeting rule title when the name field is empty (manual or auto-start).
+    private func applySuggestedMeetingTitleIfNameEmpty(for sessionType: SessionType, at instant: Date = Date()) {
+        guard sessionType == .callCapture || sessionType == .fileImport else { return }
+        let draft = settings.sessionTranscriptNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard draft.isEmpty else { return }
+        guard let title = meetingProfileStore.suggestedTitle(for: instant, sessionType: sessionType) else { return }
+        settings.suppressSessionTranscriptNameDraftTracking = true
+        settings.sessionTranscriptNameDraft = title
+        settings.suppressSessionTranscriptNameDraftTracking = false
+        settings.sessionTranscriptNameUserEdited = false
+        suggestedMeetingTitle = title
+    }
+
     private func clearSessionNameDraftAfterMeeting() {
         settings.suppressSessionTranscriptNameDraftTracking = true
         settings.sessionTranscriptNameDraft = ""
@@ -778,6 +791,10 @@ struct ContentView: View {
             sourceApp = "Voice Memo"
         case .fileImport:
             return  // handled by startFileSession(url:)
+        }
+
+        if type == .callCapture {
+            applySuggestedMeetingTitleIfNameEmpty(for: .callCapture)
         }
 
         let sessionLanguage = settings.sessionTranscriptionLanguage
@@ -862,7 +879,7 @@ struct ContentView: View {
         savedFileURL = nil
         bannerDismissTask?.cancel()
         activeSessionType = .fileImport
-        refreshSuggestedMeetingTitle(for: .fileImport)
+        applySuggestedMeetingTitleIfNameEmpty(for: .fileImport)
         let sessionLanguage = settings.sessionTranscriptionLanguage
         let customTitle = settings.sessionTranscriptNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         let titleForSession = customTitle.isEmpty ? nil : customTitle
@@ -993,11 +1010,10 @@ struct ContentView: View {
         silenceSeconds = 0
 
         let speakerName = last.speaker == .you ? "You" : "Them"
-        let normalizedText = meetingProfileStore.applyGlossary(to: last.text)
         Task {
             await transcriptLogger.append(
                 speaker: speakerName,
-                text: normalizedText,
+                text: last.text,
                 timestamp: last.timestamp
             )
         }

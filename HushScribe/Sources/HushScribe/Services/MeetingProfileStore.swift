@@ -45,23 +45,10 @@ struct ColleaguePerson: Codable, Identifiable, Equatable {
     }
 }
 
-struct GlossaryEntry: Codable, Identifiable, Equatable {
-    var id: UUID
-    var canonical: String
-    var variants: [String]
-
-    init(id: UUID = UUID(), canonical: String, variants: [String] = []) {
-        self.id = id
-        self.canonical = canonical
-        self.variants = variants
-    }
-}
-
 struct MeetingProfileDocument: Codable {
     var templateMatchingDefaults: TemplateMatchingDefaults = .init()
     var colleagues: [ColleaguePerson] = []
     var meetingTemplates: [MeetingTemplate] = []
-    var glossaryEntries: [GlossaryEntry] = []
 }
 
 // MARK: - Store
@@ -72,7 +59,6 @@ final class MeetingProfileStore {
     private(set) var templateMatchingDefaults: TemplateMatchingDefaults = .init()
     private(set) var colleagues: [ColleaguePerson] = []
     private(set) var meetingTemplates: [MeetingTemplate] = []
-    private(set) var glossaryEntries: [GlossaryEntry] = []
 
     private let fileURL: URL
 
@@ -90,7 +76,6 @@ final class MeetingProfileStore {
         templateMatchingDefaults = doc.templateMatchingDefaults
         colleagues = doc.colleagues
         meetingTemplates = doc.meetingTemplates
-        glossaryEntries = doc.glossaryEntries
     }
 
     /// Reload rules from disk (e.g. after editing in Meetings window or before matching).
@@ -102,35 +87,10 @@ final class MeetingProfileStore {
         let doc = MeetingProfileDocument(
             templateMatchingDefaults: templateMatchingDefaults,
             colleagues: colleagues,
-            meetingTemplates: meetingTemplates,
-            glossaryEntries: glossaryEntries
+            meetingTemplates: meetingTemplates
         )
         guard let data = try? JSONEncoder().encode(doc) else { return }
         try? data.write(to: fileURL, options: .atomic)
-    }
-
-    // MARK: - Glossary
-
-    func applyGlossary(to text: String) -> String {
-        GlossaryNormalizer.apply(text, entries: glossaryEntries)
-    }
-
-    func addGlossaryEntry(canonical: String, variants: [String]) {
-        let trimmed = canonical.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        glossaryEntries.append(GlossaryEntry(canonical: trimmed, variants: variants))
-        persist()
-    }
-
-    func updateGlossaryEntry(_ entry: GlossaryEntry) {
-        guard let i = glossaryEntries.firstIndex(where: { $0.id == entry.id }) else { return }
-        glossaryEntries[i] = entry
-        persist()
-    }
-
-    func deleteGlossaryEntry(id: UUID) {
-        glossaryEntries.removeAll { $0.id == id }
-        persist()
     }
 
     // MARK: - Colleagues

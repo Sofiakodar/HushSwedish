@@ -53,7 +53,7 @@ private struct MainSettingsTab: View {
                     MeetingsAndSpeakersView.openWindow(store: meetingProfileStore)
                 }
                 .font(.system(size: 12))
-                Text("Colleagues for post-call naming, recurring meeting titles, and transcription glossary.")
+                Text("Colleagues for post-call naming and recurring meeting title rules.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }

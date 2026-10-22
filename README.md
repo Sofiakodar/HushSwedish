@@ -45,6 +45,7 @@ It can also be used **next to** the official app (`com.drcursor.hushscribe` vs `
 | Model RAM | Stays loaded until you quit | **Warm on menu open**, **idle offload** (30 min / 1 h / 2 h), **memory-pressure** unload |
 | When to start speaking | Session starts immediately or fixed pre-roll | **“Getting ready…”** until capture is live; waveform + **Transcribing** state = safe to talk |
 | Stalled mic / system audio | Hidden recovery gesture | **Restart capture** button while recording (+ hint if mic meter stays flat) |
+| Colleagues & meeting titles | Manual transcript naming only | **Meetings and speakers** — roster + weekday/time **default transcript names** |
 
 **Also in this fork:**
 
@@ -56,6 +57,9 @@ It can also be used **next to** the official app (`com.drcursor.hushscribe` vs `
 - **Ready-to-transcribe overlay:** tapping **Call Capture** or **Voice Memo** shows **“Getting ready…”** while models load (if needed) and capture starts. The overlay clears when the session is actually recording (waveform active, status shows transcribing). **Wait for that** before you speak — duration depends on warm vs cold load, not a fixed timer.
 - **Restart capture:** if the mic or system meter stays flat or text stops updating, use **Restart capture** under Stop/Pause (restarts audio pipelines without ending the session). Settings → Recording explains picking a fixed mic vs System Default.
 - **Download gate:** Call Capture / Voice Memo stay disabled until the selected transcription model is on disk; the main view recommends **Whisper Large v3** (SV/EN) or **Parakeet** (English-only).
+- **Meetings and speakers** (menu **Meetings**, status bar menu, or **Settings → Open Meetings and speakers…**):
+  - **Speakers** — save people you meet with often; after Call Capture, tap a **colleague chip** (or type) when renaming **Speaker 2, 3…** in the transcript.
+  - **Meetings** — rules like “Mon–Fri **09:00** → title **Standup**”. While you are in the slot (**5 min before** through **20 min after** that time), the popover shows a **Suggested** title chip; **Call Capture**, **file import**, and **auto-record** use the rule title when **Name** is empty (you can still type a custom name or tap the chip first).
 
 Full details: [docs/changes-from-hushscribe.md](docs/changes-from-hushscribe.md) · Language design: [docs/plan-recording-language-sv-en.md](docs/plan-recording-language-sv-en.md)
 
@@ -106,10 +110,12 @@ Signed DMG / notarization: your Apple Developer ID in `scripts/release.sh`. Layo
 ## Day-to-day use
 
 1. **Download** your ASR model once in **Settings → Models** (default for Swedish: **Whisper Large v3**).
-2. Open the menu bar app — models **warm in the background** while you set **SV/EN**, optional **name**, then **Call Capture** or **Voice Memo**. Wait until **Getting ready…** disappears and the waveform is live before speaking.
-3. Transcripts land as Markdown (+ YAML) in the folder of your choosing (for example an Obsidian vault). 
-4. During a long session, if audio seems stuck, tap **Restart capture** (see [Limitations](#limitations)).
-5. **Transcript Viewer** → browse, export, optional on-device **summary** (Qwen3, Gemma, Apple NL).
+2. Optional: open **Meetings and speakers** once to add **colleagues** and **meeting rules** (weekday + time → default transcript title for Call Capture / file import).
+3. Open the menu bar app — models **warm in the background** while you set **SV/EN**, optional **name** (or tap a **Suggested** meeting title when a rule matches), then **Call Capture** or **Voice Memo**. Wait until **Getting ready…** disappears and the waveform is live before speaking.
+4. After a multi-speaker call, use **Name Speakers** to assign **colleague** names to diarized lines.
+5. Transcripts land as Markdown (+ YAML) in the folder of your choosing (for example an Obsidian vault).
+6. During a long session, if audio seems stuck, tap **Restart capture** (see [Limitations](#limitations)).
+7. **Transcript Viewer** → browse, export, optional on-device **summary** (Qwen3, Gemma, Apple NL).
 
 Close the popover when done; transcription models **drop from RAM** after the idle interval you chose (default 1 hour) so the app can stay in the menu bar without holding ~1–3 GB. Open the menu again before the next meeting to warm up.
 
