@@ -33,6 +33,7 @@ struct SummarizeView: View {
     @State private var isLoadingTranscript = false
     @State private var transcriptLoadError: String?
     @State private var loadGeneration = 0
+    @State private var sidebarRefreshID = 0
 
     enum ActiveTab { case transcript, summary }
 
@@ -66,6 +67,7 @@ struct SummarizeView: View {
                         meetingsPath: settings.vaultMeetingsPath,
                         voicePath: settings.vaultVoicePath,
                         selectedURL: transcriptURL,
+                        refreshID: sidebarRefreshID,
                         onSelect: { url in
                             selectTranscript(url)
                         },
@@ -495,7 +497,7 @@ struct SummarizeView: View {
                     )
                     .foregroundStyle(copySummaryConfirmed ? .green : .secondary)
                 }
-                .font(.system(size: 10))
+                .font(.system(size: 11))
                 .buttonStyle(.plain)
                 .disabled(summary == nil)
 
@@ -503,16 +505,17 @@ struct SummarizeView: View {
                     if isSaving {
                         ProgressView().controlSize(.small)
                     } else if savedConfirmation {
-                        Label("Saved · \(savedFilename)", systemImage: "checkmark")
-                            .foregroundStyle(.green)
+                        Label("Saved", systemImage: "checkmark")
                     } else {
                         Label("Save", systemImage: "square.and.arrow.down")
-                            .foregroundStyle(.secondary)
                     }
                 }
-                .font(.system(size: 10))
-                .buttonStyle(.plain)
+                .font(.system(size: 12, weight: .medium))
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .tint(savedConfirmation ? .green : Color.accentColor)
                 .disabled(isSaving || savedConfirmation || summary == nil)
+                .help(savedConfirmation ? savedFilename : "Saves as “\(transcriptURL?.deletingPathExtension().lastPathComponent ?? "transcript") summary.md” next to the transcript.")
 
                 Button {
                     withAnimation(.easeInOut(duration: 0.15)) { summaryRendered.toggle() }
@@ -754,6 +757,7 @@ struct SummarizeView: View {
         await logger.writeSummaryFile(s, for: transcriptURL, model: summaryGeneratedBy?.displayName)
         isSaving = false
         savedFilename = summaryURL.lastPathComponent
+        sidebarRefreshID += 1
         withAnimation { savedConfirmation = true }
     }
 
@@ -1155,6 +1159,7 @@ private struct LibrarySidebar: View {
     let meetingsPath: String
     let voicePath: String
     let selectedURL: URL?
+    var refreshID: Int = 0
     let onSelect: (URL) -> Void
     let onDelete: (URL) -> Void
 
@@ -1271,6 +1276,7 @@ private struct LibrarySidebar: View {
         .frame(maxHeight: .infinity)
         .background(Color.bg1.opacity(0.6))
         .onAppear { loadFiles() }
+        .onChange(of: refreshID) { _, _ in loadFiles() }
     }
 
     private func handleDeleteTap(_ file: SidebarFile) {
