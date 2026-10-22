@@ -4,6 +4,11 @@ import Combine
 import CoreAudio
 import UniformTypeIdentifiers
 
+enum MainWindowLayout {
+    static let width: CGFloat = 520
+    static let height: CGFloat = 548
+}
+
 private let conferencingBundleIDs: [String: String] = [
     "com.microsoft.teams2": "Teams",
     "com.microsoft.teams": "Teams",
@@ -24,6 +29,7 @@ struct ContentView: View {
     var transcriptStore: TranscriptStore
     var transcriptionEngine: TranscriptionEngine
     var meetingMonitor: MeetingMonitor
+    var meetingProfileStore: MeetingProfileStore
     /// When ContentView is hosted outside the SwiftUI scene (e.g. in a popover),
     /// the caller can supply an override so the Settings button still works.
     var openSettingsOverride: (() -> Void)? = nil
@@ -54,6 +60,7 @@ struct ContentView: View {
     @State private var preRollPhase: PreRollPhase?
     @State private var flatMicSeconds = 0
     @State private var isRestartingCapture = false
+    @State private var suggestedMeetingTitle: String?
 
     var body: some View {
         coreContent
@@ -108,13 +115,16 @@ struct ContentView: View {
             topBar
             windowToolbar
             mainContentArea
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .layoutPriority(-1)
             if let url = savedFileURL, activeSessionType == nil {
                 saveBanner(url: url)
             }
             waveformSection
             controlBarSection
+                .layoutPriority(1)
         }
-        .frame(minWidth: 480, maxWidth: 480, minHeight: 360)
+        .frame(width: MainWindowLayout.width, height: MainWindowLayout.height)
         .background(Color.bg0)
         .onAppear { transcriptionEngine.noteTranscriptionUIAppeared() }
         .onDisappear { transcriptionEngine.noteTranscriptionUIDisappeared() }
@@ -171,7 +181,11 @@ struct ContentView: View {
         SpeakerNamingView(
             speakerLabels: speakerLabelsForNaming,
             previews: speakerPreviewsForNaming,
+            colleagues: meetingProfileStore.colleaguesSortedForPicker,
             onApply: { mapping in
+                for name in mapping.values {
+                    meetingProfileStore.ensureColleagueSaved(displayName: name)
+                }
                 showSpeakerNaming = false
                 speakerNamingContinuation?.resume(returning: mapping)
                 speakerNamingContinuation = nil
@@ -204,6 +218,22 @@ struct ContentView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .appOpenSummarize)) { _ in
                 SummarizeView.openWindow(settings: settings, logger: transcriptLogger)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .appOpenMeetingsAndSpeakers)) { _ in
+                MeetingsAndSpeakersView.openWindow(store: meetingProfileStore)
+            }
+            .onChange(of: settings.sessionTranscriptNameDraft) { _, _ in
+                guard !settings.suppressSessionTranscriptNameDraftTracking else { return }
+                settings.sessionTranscriptNameUserEdited = true
+            }
+            .onChange(of: showFilePicker) { _, isOpen in
+                if isOpen { refreshSuggestedMeetingTitle(for: .fileImport) }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .appPopoverDidOpen)) { _ in
+                refreshSuggestedMeetingTitle(for: .callCapture)
+            }
+            .onAppear {
+                refreshSuggestedMeetingTitle(for: .callCapture)
             }
             .onReceive(NotificationCenter.default.publisher(for: .appShowOnboarding)) { _ in
                 showOnboarding = true
@@ -322,54 +352,62 @@ struct ContentView: View {
 
     private var windowToolbar: some View {
         HStack(spacing: 0) {
-            toolbarButton(icon: "doc.text.magnifyingglass", label: "Transcripts") {
-                SummarizeView.openWindow(settings: settings, logger: transcriptLogger)
-                if settings.mainWindowMode == .attached {
-                    NotificationCenter.default.post(name: .appClosePopover, object: nil)
-                }
-            }
-            toolbarButton(icon: "gear", label: "Settings") {
-                settings.preferredSettingsTab = 0
-                if let openSettingsOverride {
-                    openSettingsOverride()
-                } else {
-                    openSettings()
-                }
-            }
-            toolbarButton(icon: "arrow.up.doc", label: "Transcribe File") {
-                showFilePicker = true
-            }
-            .disabled(isRunning || !transcriptionEngine.canStartRecording)
-            .opacity(isRunning || !transcriptionEngine.canStartRecording ? 0.35 : 1)
-            Spacer()
-            if settings.mainWindowMode == .attached {
-                toolbarButton(
-                    icon: settings.autoMeetingDetect ? "waveform.badge.magnifyingglass" : "waveform.slash",
-                    label: "Auto"
-                ) {
-                    settings.autoMeetingDetect.toggle()
-                }
-                .opacity(settings.autoMeetingDetect ? 1.0 : 0.4)
-                .overlay(alignment: .topTrailing) {
-                    if settings.autoMeetingDetect && meetingMonitor.isMeetingActive {
-                        Circle().fill(Color.green).frame(width: 6, height: 6)
-                            .offset(x: 2, y: -2)
+            HStack(spacing: 0) {
+                toolbarButton(icon: "doc.text.magnifyingglass", label: "Transcripts") {
+                    SummarizeView.openWindow(settings: settings, logger: transcriptLogger)
+                    if settings.mainWindowMode == .attached {
+                        NotificationCenter.default.post(name: .appClosePopover, object: nil)
                     }
                 }
-                toolbarButton(icon: "power", label: "Quit") {
-                    showQuitConfirmation = true
+                toolbarButton(icon: "person.2.crop.square.stack", label: "Meetings") {
+                    MeetingsAndSpeakersView.openWindow(store: meetingProfileStore)
                 }
-                toolbarButton(icon: "arrow.up.left.and.arrow.down.right", label: "Detach") {
-                    settings.mainWindowMode = .detached
+                toolbarButton(icon: "gear", label: "Settings") {
+                    settings.preferredSettingsTab = 0
+                    if let openSettingsOverride {
+                        openSettingsOverride()
+                    } else {
+                        openSettings()
+                    }
                 }
-            } else {
-                toolbarButton(icon: "arrow.down.right.and.arrow.up.left", label: "Attach") {
-                    settings.mainWindowMode = .attached
+                toolbarButton(icon: "arrow.up.doc", label: "Import") {
+                    showFilePicker = true
+                }
+                .disabled(isRunning || !transcriptionEngine.canStartRecording)
+                .opacity(isRunning || !transcriptionEngine.canStartRecording ? 0.35 : 1)
+            }
+            .frame(maxWidth: .infinity)
+
+            HStack(spacing: 2) {
+                if settings.mainWindowMode == .attached {
+                    toolbarIconButton(
+                        icon: settings.autoMeetingDetect ? "waveform.badge.magnifyingglass" : "waveform.slash",
+                        help: "Auto-record meetings"
+                    ) {
+                        settings.autoMeetingDetect.toggle()
+                    }
+                    .opacity(settings.autoMeetingDetect ? 1.0 : 0.4)
+                    .overlay(alignment: .topTrailing) {
+                        if settings.autoMeetingDetect && meetingMonitor.isMeetingActive {
+                            Circle().fill(Color.green).frame(width: 6, height: 6)
+                                .offset(x: 2, y: -2)
+                        }
+                    }
+                    toolbarIconButton(icon: "power", help: "Quit") {
+                        showQuitConfirmation = true
+                    }
+                    toolbarIconButton(icon: "arrow.up.left.and.arrow.down.right", help: "Detach window") {
+                        settings.mainWindowMode = .detached
+                    }
+                } else {
+                    toolbarIconButton(icon: "arrow.down.right.and.arrow.up.left", help: "Attach to menu bar") {
+                        settings.mainWindowMode = .attached
+                    }
                 }
             }
         }
-        .padding(.horizontal, 4)
-        .frame(height: 44)
+        .padding(.horizontal, 6)
+        .frame(height: 42)
         .background(.bar)
         .overlay(Divider(), alignment: .bottom)
     }
@@ -378,17 +416,30 @@ struct ContentView: View {
         Button(action: action) {
             VStack(spacing: 2) {
                 Image(systemName: icon)
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                 Text(label)
-                    .font(.system(size: 9, weight: .medium))
+                    .font(.system(size: 8, weight: .medium))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .minimumScaleFactor(0.7)
             }
             .foregroundStyle(Color.fg2)
-            .frame(width: 72, height: 38)
+            .frame(maxWidth: .infinity)
+            .frame(height: 36)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private func toolbarIconButton(icon: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundStyle(Color.fg2)
+                .frame(width: 34, height: 36)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
     }
 
     private var topBarStatus: String {
@@ -534,6 +585,7 @@ struct ContentView: View {
                 .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 8)
     }
 
     // MARK: - Waveform + Countdown Section
@@ -584,6 +636,8 @@ struct ContentView: View {
             activeSessionType: activeSessionType,
             sessionLanguage: $settings.sessionTranscriptionLanguage,
             sessionTranscriptName: $settings.sessionTranscriptNameDraft,
+            suggestedMeetingTitle: suggestedMeetingTitle,
+            onApplySuggestedMeetingTitle: applySuggestedMeetingTitle,
             recordingSessionLanguage: recordingSessionLanguage,
             recordingSessionTitle: recordingSessionTitle,
             transcriptionModel: settings.transcriptionModel,
@@ -666,6 +720,27 @@ struct ContentView: View {
     }
 
     // MARK: - Actions
+
+    private func refreshSuggestedMeetingTitle(for sessionType: SessionType) {
+        guard !isRunning else { return }
+        suggestedMeetingTitle = meetingProfileStore.suggestedTitle(for: Date(), sessionType: sessionType)
+    }
+
+    private func applySuggestedMeetingTitle() {
+        guard let title = suggestedMeetingTitle else { return }
+        settings.suppressSessionTranscriptNameDraftTracking = true
+        settings.sessionTranscriptNameDraft = title
+        settings.suppressSessionTranscriptNameDraftTracking = false
+        settings.sessionTranscriptNameUserEdited = true
+    }
+
+    private func clearSessionNameDraftAfterMeeting() {
+        settings.suppressSessionTranscriptNameDraftTracking = true
+        settings.sessionTranscriptNameDraft = ""
+        settings.suppressSessionTranscriptNameDraftTracking = false
+        settings.sessionTranscriptNameUserEdited = false
+        refreshSuggestedMeetingTitle(for: .callCapture)
+    }
 
     private func startSession(type: SessionType) {
         guard preRollPhase == nil else { return }
@@ -781,6 +856,7 @@ struct ContentView: View {
         savedFileURL = nil
         bannerDismissTask?.cancel()
         activeSessionType = .fileImport
+        refreshSuggestedMeetingTitle(for: .fileImport)
         let sessionLanguage = settings.sessionTranscriptionLanguage
         let customTitle = settings.sessionTranscriptNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         let titleForSession = customTitle.isEmpty ? nil : customTitle
@@ -826,6 +902,7 @@ struct ContentView: View {
         if settings.notificationSoundEnabled { NSSound(named: .init("Tink"))?.play() }
         let wasCallCapture = activeSessionType == .callCapture
         let wasFileImport = activeSessionType == .fileImport
+        let shouldClearMeetingName = wasCallCapture || wasFileImport
         activeSessionType = nil
         detectedAppName = nil
         recordingSessionLanguage = nil
@@ -889,6 +966,10 @@ struct ContentView: View {
 
             transcriptionEngine.assetStatus = "Ready"
 
+            if shouldClearMeetingName {
+                clearSessionNameDraftAfterMeeting()
+            }
+
             if activeSessionType == nil, let savedPath {
                 savedFileURL = savedPath
                 bannerDismissTask?.cancel()
@@ -906,10 +987,11 @@ struct ContentView: View {
         silenceSeconds = 0
 
         let speakerName = last.speaker == .you ? "You" : "Them"
+        let normalizedText = meetingProfileStore.applyGlossary(to: last.text)
         Task {
             await transcriptLogger.append(
                 speaker: speakerName,
-                text: last.text,
+                text: normalizedText,
                 timestamp: last.timestamp
             )
         }

@@ -9,6 +9,7 @@ struct HushSwedishApp: App {
     @State private var meetingMonitor: MeetingMonitor
     @State private var transcriptStore: TranscriptStore
     @State private var transcriptionEngine: TranscriptionEngine
+    @State private var meetingProfileStore = MeetingProfileStore()
 
     init() {
         let s = AppSettings()
@@ -32,7 +33,8 @@ struct HushSwedishApp: App {
                 recordingState: recordingState,
                 transcriptStore: transcriptStore,
                 transcriptionEngine: transcriptionEngine,
-                meetingMonitor: meetingMonitor
+                meetingMonitor: meetingMonitor,
+                meetingProfileStore: meetingProfileStore
             )
             .background(
                 SettingsBridge { action in
@@ -47,18 +49,19 @@ struct HushSwedishApp: App {
                     recordingState: recordingState,
                     meetingMonitor: meetingMonitor,
                     transcriptStore: transcriptStore,
-                    transcriptionEngine: transcriptionEngine
+                    transcriptionEngine: transcriptionEngine,
+                    meetingProfileStore: meetingProfileStore
                 )
             }
         }
         .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 480, height: 480)
+        .defaultSize(width: MainWindowLayout.width, height: MainWindowLayout.height)
         .windowResizability(.contentSize)
         .commands {
             CommandGroup(replacing: .appInfo) { }
         }
         Settings {
-            SettingsView(settings: settings, engine: transcriptionEngine)
+            SettingsView(settings: settings, engine: transcriptionEngine, meetingProfileStore: meetingProfileStore)
         }
     }
 }

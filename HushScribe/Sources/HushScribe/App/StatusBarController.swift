@@ -22,13 +22,15 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private var meetingMonitor: MeetingMonitor?
     private var transcriptStore: TranscriptStore?
     private var transcriptionEngine: TranscriptionEngine?
+    private var meetingProfileStore: MeetingProfileStore?
 
     func setup(
         settings: AppSettings,
         recordingState: RecordingState,
         meetingMonitor: MeetingMonitor,
         transcriptStore: TranscriptStore,
-        transcriptionEngine: TranscriptionEngine
+        transcriptionEngine: TranscriptionEngine,
+        meetingProfileStore: MeetingProfileStore
     ) {
         guard statusItem == nil else { return }
 
@@ -37,6 +39,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         self.meetingMonitor = meetingMonitor
         self.transcriptStore = transcriptStore
         self.transcriptionEngine = transcriptionEngine
+        self.meetingProfileStore = meetingProfileStore
 
         mainWindow = NSApp.keyWindow ?? NSApp.windows.first(where: { !($0 is NSPanel) && $0.level == .normal })
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -195,7 +198,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     }
 
     private func openPopover(relativeTo button: NSButton) {
-        guard let settings, let recordingState, let transcriptStore, let transcriptionEngine else { return }
+        guard let settings, let recordingState, let transcriptStore, let transcriptionEngine, let meetingProfileStore else { return }
 
         if popover == nil {
             guard let meetingMonitor else { return }
@@ -205,6 +208,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
                 transcriptStore: transcriptStore,
                 transcriptionEngine: transcriptionEngine,
                 meetingMonitor: meetingMonitor,
+                meetingProfileStore: meetingProfileStore,
                 openSettingsOverride: { [weak self] in
                     guard let self else { return }
                     let action = self.openSettingsAction
@@ -218,14 +222,16 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             let hosting = NSHostingController(rootView: contentView)
             hosting.sizingOptions = []
             let p = NSPopover()
-            p.contentSize = NSSize(width: 480, height: 500)
+            p.contentSize = NSSize(width: MainWindowLayout.width, height: MainWindowLayout.height)
             p.contentViewController = hosting
             p.behavior = .transient
             popover = p
         }
 
+        popover?.contentSize = NSSize(width: MainWindowLayout.width, height: MainWindowLayout.height)
         popover?.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         NSApp.activate(ignoringOtherApps: true)
+        NotificationCenter.default.post(name: .appPopoverDidOpen, object: nil)
 
         Task { @MainActor in
             await transcriptionEngine.warmUpForRecording(
@@ -279,6 +285,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
 
         menu.addItem(makeItem("Transcript Viewer…", action: #selector(openTranscriptViewer)))
+        menu.addItem(makeItem("Meetings and speakers…", action: #selector(openMeetingsAndSpeakers)))
         menu.addItem(.separator())
 
         let settingsItem = makeItem("Settings...", action: #selector(openSettingsMenu))
@@ -339,6 +346,10 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     @objc private func openTranscriptViewer() {
         NotificationCenter.default.post(name: .appOpenSummarize, object: nil)
+    }
+
+    @objc private func openMeetingsAndSpeakers() {
+        NotificationCenter.default.post(name: .appOpenMeetingsAndSpeakers, object: nil)
     }
 
     @objc private func openSettingsMenu() {

@@ -20,6 +20,8 @@ struct ControlBar: View {
     let activeSessionType: SessionType?
     @Binding var sessionLanguage: SessionTranscriptionLanguage
     @Binding var sessionTranscriptName: String
+    var suggestedMeetingTitle: String? = nil
+    var onApplySuggestedMeetingTitle: (() -> Void)? = nil
     let recordingSessionLanguage: SessionTranscriptionLanguage?
     let recordingSessionTitle: String?
     let transcriptionModel: TranscriptionModel
@@ -169,7 +171,8 @@ struct ControlBar: View {
                 }
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 10)
+                .padding(.top, 10)
+                .padding(.bottom, 12)
             }
         }
         .background(.bar)
@@ -227,15 +230,40 @@ struct ControlBar: View {
     }
 
     private var sessionNameField: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             TextField("Name (optional)", text: $sessionTranscriptName)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(size: 11))
                 .disabled(!modelsReady)
 
-            Text("Saved as \(transcriptNameExample)_Your_name.md in the vault.")
+            if let suggested = suggestedMeetingTitle, !suggested.isEmpty {
+                let current = sessionTranscriptName.trimmingCharacters(in: .whitespacesAndNewlines)
+                let isSelected = current == suggested
+                HStack(spacing: 6) {
+                    Text("Suggested")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    Button {
+                        onApplySuggestedMeetingTitle?()
+                    } label: {
+                        Text(suggested)
+                            .font(.system(size: 10, weight: .medium))
+                            .lineLimit(1)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(isSelected ? Color.accent1.opacity(0.2) : Color(NSColor.controlBackgroundColor))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(isSelected ? Color.accent1.opacity(0.45) : Color(NSColor.separatorColor)))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!modelsReady)
+                }
+            }
+
+            Text("Vault: \(transcriptNameExample)_Your_name.md")
                 .font(.system(size: 9))
                 .foregroundStyle(.tertiary)
+                .lineLimit(1)
         }
     }
 

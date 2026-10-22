@@ -19,4 +19,6 @@ extension Notification.Name {
     static let appOpenSummarize = Notification.Name("\(prefix).openSummarize")
     static let appClosePopover = Notification.Name("\(prefix).closePopover")
     static let appShowOnboarding = Notification.Name("\(prefix).showOnboarding")
+    static let appOpenMeetingsAndSpeakers = Notification.Name("\(prefix).openMeetingsAndSpeakers")
+    static let appPopoverDidOpen = Notification.Name("\(prefix).popoverDidOpen")
 }

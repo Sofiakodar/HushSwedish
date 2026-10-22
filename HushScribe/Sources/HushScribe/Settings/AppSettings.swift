@@ -151,6 +151,12 @@ final class AppSettings {
         didSet { UserDefaults.standard.set(sessionTranscriptNameDraft, forKey: "sessionTranscriptNameDraft") }
     }
 
+    /// User typed in the popover name field this session (not persisted).
+    var sessionTranscriptNameUserEdited = false
+
+    /// Programmatic title updates (meeting rules) — shared across all ContentView instances.
+    var suppressSessionTranscriptNameDraftTracking = false
+
     /// Stored as the AudioDeviceID integer. 0 means "use system default".
     var inputDeviceID: AudioDeviceID {
         didSet { UserDefaults.standard.set(Int(inputDeviceID), forKey: "inputDeviceID") }

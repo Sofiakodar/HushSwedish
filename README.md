@@ -59,9 +59,30 @@ It can also be used **next to** the official app (`com.drcursor.hushscribe` vs `
 
 Full details: [docs/changes-from-hushscribe.md](docs/changes-from-hushscribe.md) · Language design: [docs/plan-recording-language-sv-en.md](docs/plan-recording-language-sv-en.md)
 
+## System requirements
+
+### To run the app
+
+| | |
+|---|---|
+| **OS** | **macOS 26** or later |
+| **Hardware** | **Apple Silicon** (M-series). Intel Macs are not supported — ASR and optional summaries rely on on-device WhisperKit, FluidAudio, and MLX. |
+| **Microphone** | Required for all recording modes |
+| **Screen & system audio** | Required for **Call Capture** only (captures meeting participants). **Voice Memo** uses the mic only. |
+| **Disk space** | About **2 GB** free for the default **Whisper Large v3** download (~1.5 GB) plus VAD and caches. **Parakeet** is ~600 MB; **Whisper Base** ~150 MB. Optional summary models are separate downloads. Model files are shared with [HushScribe](https://github.com/drcursor/HushScribe) if both apps are installed. |
+| **Memory** | Plan for roughly **4 GB+ free RAM** while transcribing with Whisper Large (the loaded model is often **~1–3 GB**). Models can be unloaded after idle time (**Settings → Recording → Memory**, default 1 hour) when the menu window is closed. |
+| **Network** | Needed to **download models** from Hugging Face when you choose them in Settings. **Transcription and summaries do not use the cloud** once models are on disk. |
+
+### To build from source
+
+| | |
+|---|---|
+| **Xcode** | **26+** with **Swift 6.2** (see `HushScribe/Package.swift`) |
+| **Metal Toolchain** | Required to bundle `mlx.metallib` for **AI summaries** — install with `xcodebuild -downloadComponent MetalToolchain` if `scripts/release.sh` reports it missing. Transcription-only use does not need MLX at runtime until you generate a summary. |
+
 ## Install (build from source)
 
-No Homebrew cask for this fork yet. **Apple Silicon, macOS 26+:**
+No Homebrew cask for this fork yet.
 
 ```bash
 git clone https://github.com/Sofiakodar/HushSwedish.git

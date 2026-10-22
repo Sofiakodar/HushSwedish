@@ -5,11 +5,12 @@ import FluidAudio
 struct SettingsView: View {
     @Bindable var settings: AppSettings
     var engine: TranscriptionEngine
+    var meetingProfileStore: MeetingProfileStore
     @State private var selectedTab = 0
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            MainSettingsTab(settings: settings)
+            MainSettingsTab(settings: settings, meetingProfileStore: meetingProfileStore)
                 .tabItem { Label("Main", systemImage: "gearshape") }
                 .tag(0)
             RecordingSettingsTab(settings: settings)
@@ -41,11 +42,22 @@ struct SettingsView: View {
 
 private struct MainSettingsTab: View {
     @Bindable var settings: AppSettings
+    var meetingProfileStore: MeetingProfileStore
     @State private var showResetConfirmation = false
     @State private var settingsWindowRef: NSWindow?
 
     var body: some View {
         Form {
+            Section("Meetings and speakers") {
+                Button("Open Meetings and speakers…") {
+                    MeetingsAndSpeakersView.openWindow(store: meetingProfileStore)
+                }
+                .font(.system(size: 12))
+                Text("Colleagues for post-call naming, recurring meeting titles, and transcription glossary.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Notifications") {
                 Toggle("Play sound on recording start/stop", isOn: $settings.notificationSoundEnabled)
                     .font(.system(size: 12))

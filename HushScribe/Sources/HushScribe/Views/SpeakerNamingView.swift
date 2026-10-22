@@ -5,6 +5,7 @@ struct SpeakerNamingView: View {
     let speakerLabels: [String]
     /// Short text excerpts per speaker label for identification — may be empty.
     let previews: [String: [String]]
+    let colleagues: [ColleaguePerson]
     /// Called with mapping from generic label -> user-entered name (empty values filtered out)
     let onApply: ([String: String]) -> Void
     /// Called when user wants to skip naming
@@ -17,7 +18,6 @@ struct SpeakerNamingView: View {
         VStack(spacing: 0) {
             Spacer()
 
-            // Header
             VStack(spacing: 6) {
                 Image(systemName: "person.2.fill")
                     .font(.system(size: 28, weight: .light))
@@ -27,18 +27,15 @@ struct SpeakerNamingView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Color.fg1)
 
-                Text("Assign names to the speakers\nidentified in this call.")
+                Text("Tap a colleague or type a name for each speaker.")
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .lineSpacing(3)
             }
             .padding(.bottom, 20)
 
-            // Speaker fields
             ScrollView {
               VStack(spacing: 8) {
-                // "You" row — non-editable, shown for context
                 HStack(spacing: 10) {
                     Circle()
                         .fill(Color.accent1.opacity(0.2))
@@ -48,19 +45,16 @@ struct SpeakerNamingView: View {
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(Color.accent1)
                         )
-
                     Text("You")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Color.fg2)
-
                     Spacer()
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
 
-                // Editable speaker rows
                 ForEach(speakerLabels, id: \.self) { label in
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 10) {
                             Circle()
                                 .fill(Color.fg2.opacity(0.2))
@@ -87,6 +81,30 @@ struct SpeakerNamingView: View {
                                 .onSubmit { advanceFocus(from: label) }
                         }
 
+                        if !colleagues.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 6) {
+                                    ForEach(colleagues) { person in
+                                        Button(person.displayName) {
+                                            names[label] = person.displayName
+                                        }
+                                        .buttonStyle(.plain)
+                                        .font(.system(size: 10, weight: .medium))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(
+                                            (names[label] == person.displayName)
+                                                ? Color.accent1.opacity(0.2)
+                                                : Color(NSColor.controlBackgroundColor)
+                                        )
+                                        .clipShape(Capsule())
+                                        .overlay(Capsule().stroke(Color(NSColor.separatorColor)))
+                                    }
+                                }
+                            }
+                            .padding(.leading, 38)
+                        }
+
                         if let excerpts = previews[label], !excerpts.isEmpty {
                             VStack(alignment: .leading, spacing: 2) {
                                 ForEach(excerpts, id: \.self) { excerpt in
@@ -106,7 +124,6 @@ struct SpeakerNamingView: View {
 
             Spacer()
 
-            // Buttons
             HStack {
                 Button("Skip") { onSkip() }
                     .buttonStyle(.plain)
@@ -148,7 +165,10 @@ struct SpeakerNamingView: View {
     }
 
     private func speakerInitial(_ label: String) -> String {
-        label.components(separatedBy: " ").last ?? "?"
+        let base = names[label]?.trimmingCharacters(in: .whitespaces).first.map(String.init)
+            ?? label.components(separatedBy: " ").last
+            ?? "?"
+        return String(base.prefix(1)).uppercased()
     }
 
     private func applyNames() {
