@@ -62,6 +62,10 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
+                // Drop any popover ContentView so a stale onboarding overlay
+                // is not waiting the next time the menu-bar popover opens.
+                self?.popover?.performClose(nil)
+                self?.popover = nil
                 self?.showMainWindow()
             }
         }

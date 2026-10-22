@@ -380,7 +380,12 @@ struct SummaryService {
     // MARK: - File parsing
 
     static func extractTranscript(from fileContent: String) -> String {
-        guard let range = fileContent.range(of: "## Transcript\n") else { return fileContent }
-        return String(fileContent[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let markers = ["## Transcript\r\n", "## Transcript\n"]
+        for marker in markers {
+            if let range = fileContent.range(of: marker) {
+                return String(fileContent[range.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        return fileContent
     }
 }

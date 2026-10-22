@@ -121,18 +121,27 @@ struct ContentView: View {
                 saveBanner(url: url)
             }
             waveformSection
-            controlBarSection
-                .layoutPriority(1)
+            if !showOnboarding {
+                controlBarSection
+                    .layoutPriority(1)
+            }
         }
         .frame(width: MainWindowLayout.width, height: MainWindowLayout.height)
         .background(Color.bg0)
+        .allowsHitTesting(!showOnboarding)
         .onAppear { transcriptionEngine.noteTranscriptionUIAppeared() }
         .onDisappear { transcriptionEngine.noteTranscriptionUIDisappeared() }
         .confirmationDialog("Quit \(AppIdentity.displayName)?", isPresented: $showQuitConfirmation, titleVisibility: .visible) {
             Button("Quit", role: .destructive) { NSApplication.shared.terminate(nil) }
             Button("Cancel", role: .cancel) {}
         }
-        .overlay { if showOnboarding { OnboardingView(isPresented: $showOnboarding, settings: settings).transition(.opacity) } }
+        .overlay {
+            if showOnboarding {
+                OnboardingView(isPresented: $showOnboarding, settings: settings, isReplay: hasCompletedOnboarding)
+                    .allowsHitTesting(true)
+                    .transition(.opacity)
+            }
+        }
         .overlay { if showSpeakerNaming { speakerNamingOverlay } }
         .overlay { if let phase = preRollPhase { PreRollOverlay(phase: phase) } }
         .fileImporter(
@@ -144,7 +153,13 @@ struct ContentView: View {
                 startFileSession(url: url)
             }
         }
-        .onChange(of: showOnboarding) { if !showOnboarding { hasCompletedOnboarding = true } }
+        .onChange(of: showOnboarding) { _, showing in
+            if showing {
+                NSApp.keyWindow?.makeFirstResponder(nil)
+            } else {
+                hasCompletedOnboarding = true
+            }
+        }
         .task {
             if !hasCompletedOnboarding {
                 showOnboarding = true

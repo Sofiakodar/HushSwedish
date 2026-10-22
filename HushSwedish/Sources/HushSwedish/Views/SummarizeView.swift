@@ -24,12 +24,15 @@ struct SummarizeView: View {
     @State private var summaryRendered = true
 
     // UI
-    @State private var showSidebar = false
-    @State private var sidebarWidth: CGFloat = 240
+    @State private var showSidebar = true
+    @State private var sidebarWidth: CGFloat = 260
     @State private var activeTab: ActiveTab = .transcript
     @State private var copyTranscriptConfirmed = false
     @State private var copySummaryConfirmed = false
     @State private var showAppleNLWarning = false
+    @State private var isLoadingTranscript = false
+    @State private var transcriptLoadError: String?
+    @State private var loadGeneration = 0
 
     enum ActiveTab { case transcript, summary }
 
@@ -65,15 +68,14 @@ struct SummarizeView: View {
                         selectedURL: transcriptURL,
                         onSelect: { url in
                             selectTranscript(url)
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
-                                showSidebar = false
-                            }
                         },
                         onDelete: { url in
                             if transcriptURL == url {
                                 transcriptURL = nil
                                 transcriptText = ""
                                 parsedUtterances = []
+                                transcriptLoadError = nil
+                                isLoadingTranscript = false
                                 summary = nil
                                 summaryGeneratedBy = nil
                             }
@@ -100,7 +102,7 @@ struct SummarizeView: View {
                 }
             }
         }
-        .frame(minWidth: 520, minHeight: 440)
+        .frame(minWidth: 720, minHeight: 440)
         .onAppear {
             if let url = transcriptURL {
                 loadTranscript(from: url)
@@ -399,8 +401,28 @@ struct SummarizeView: View {
 
             Divider().padding(.horizontal, 20)
 
-            if transcriptText.isEmpty {
+            if isLoadingTranscript {
                 Text("Loading…")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = transcriptLoadError {
+                VStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 22))
+                        .foregroundStyle(.secondary)
+                    Text("Couldn’t open this file")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(error)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 360)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding()
+            } else if transcriptText.isEmpty {
+                Text("This file has no transcript text.")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -567,6 +589,7 @@ struct SummarizeView: View {
         transcriptURL = url
         transcriptText = ""
         parsedUtterances = []
+        transcriptLoadError = nil
         summary = nil
         summaryGeneratedBy = nil
         savedConfirmation = false
@@ -590,14 +613,57 @@ struct SummarizeView: View {
     }
 
     private func loadTranscript(from url: URL) {
-        Task.detached {
-            guard let content = try? String(contentsOf: url, encoding: .utf8) else { return }
-            let raw = SummaryService.extractTranscript(from: content)
-            let utterances = ParsedUtterance.parse(raw)
-            await MainActor.run {
-                transcriptText = raw
-                parsedUtterances = utterances
+        loadGeneration += 1
+        let generation = loadGeneration
+        isLoadingTranscript = true
+        transcriptLoadError = nil
+        Task {
+            do {
+                let content = try await Task.detached(priority: .userInitiated) {
+                    try Self.readFileContents(at: url)
+                }.value
+                guard generation == loadGeneration else { return }
+                let raw = SummaryService.extractTranscript(from: content)
+                let display = raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? content : raw
+                transcriptText = display
+                parsedUtterances = ParsedUtterance.parse(display)
+                isLoadingTranscript = false
+            } catch {
+                guard generation == loadGeneration else { return }
+                transcriptText = ""
+                parsedUtterances = []
+                transcriptLoadError = error.localizedDescription
+                isLoadingTranscript = false
             }
+        }
+    }
+
+    private static func readFileContents(at url: URL) throws -> String {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+
+        var coordinatorError: NSError?
+        var readResult: Result<String, Error>?
+        NSFileCoordinator().coordinate(readingItemAt: url, options: .withoutChanges, error: &coordinatorError) { readURL in
+            do {
+                let data = try Data(contentsOf: readURL, options: [.mappedIfSafe])
+                if let text = String(data: data, encoding: .utf8) {
+                    readResult = .success(text)
+                } else {
+                    readResult = .success(String(decoding: data, as: UTF8.self))
+                }
+            } catch {
+                readResult = .failure(error)
+            }
+        }
+        if let coordinatorError { throw coordinatorError }
+        switch readResult {
+        case .success(let text):
+            return text
+        case .failure(let error):
+            throw error
+        case nil:
+            throw CocoaError(.fileReadUnknown)
         }
     }
 
@@ -839,8 +905,8 @@ struct SummarizeView: View {
         let window = NSWindow(contentViewController: controller)
         let titleSuffix = url.map { " — \($0.deletingPathExtension().lastPathComponent)" } ?? ""
         window.title = "Transcript Viewer\(titleSuffix)"
-        window.setContentSize(NSSize(width: 720, height: 580))
-        window.minSize = NSSize(width: 520, height: 440)
+        window.setContentSize(NSSize(width: 920, height: 580))
+        window.minSize = NSSize(width: 720, height: 440)
         window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
         window.isReleasedWhenClosed = false
         window.center()

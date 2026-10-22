@@ -5,6 +5,8 @@ import CoreGraphics
 struct OnboardingView: View {
     @Binding var isPresented: Bool
     @Bindable var settings: AppSettings
+    /// When true, finishing the guide stays in the main window instead of hiding it.
+    var isReplay: Bool = false
     @State private var currentStep = 0
     @State private var arrowOpacity: Double = 1
     @State private var micGranted = false
@@ -15,7 +17,7 @@ struct OnboardingView: View {
         (
             "waveform.circle",
             "Welcome to \(AppIdentity.displayName)",
-            "A lightweight meeting transcription tool that captures your conversations — all running locally on your Mac. No API keys, no cloud services."
+            "A lightweight meeting transcription tool that captures your conversations — all running locally on your Mac. No API keys, no cloud services. \n\n This app is specialized for Swedish and English meetings. "
         ),
         (
             "text.quote",
@@ -39,8 +41,8 @@ struct OnboardingView: View {
         ),
         (
             "exclamationmark.shield",
-            "Legal Disclaimer",
-            "Recording laws vary by jurisdiction. In many places, all parties must consent before a conversation may be recorded. It is your sole responsibility to ensure you comply with applicable local laws before using \(AppIdentity.displayName) to record any conversation."
+            "Legal and privacy Disclaimer",
+            "Always respect other people's privacy. Recording laws vary. In many places, all parties must consent before a conversation may be recorded. It is your sole responsibility to ensure you comply with applicable local laws and that you respect other people's privacy."
         ),
         (
             "menubar.rectangle",
@@ -119,7 +121,7 @@ struct OnboardingView: View {
                             Image(systemName: disclaimerAcknowledged ? "checkmark.square.fill" : "square")
                                 .font(.system(size: 16))
                                 .foregroundStyle(disclaimerAcknowledged ? Color.accent1 : .secondary)
-                            Text("I understand it's my sole responsibility to comply with local recording laws")
+                            Text("I understand it's my sole responsibility to comply with local recording laws and will ask for permission before transcribing any conversation.")
                                 .font(.system(size: 13))
                                 .foregroundStyle(.primary)
                                 .multilineTextAlignment(.leading)
@@ -219,6 +221,7 @@ struct OnboardingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.bg0)
         .onAppear {
+            NSApp.keyWindow?.makeFirstResponder(nil)
             refreshStatuses()
             disclaimerAcknowledged = settings.hasAcknowledgedDisclaimer
         }
@@ -266,6 +269,7 @@ struct OnboardingView: View {
 
     private func finish() {
         isPresented = false
+        guard !isReplay else { return }
         NSApp.windows.first { !($0 is NSPanel) && $0.level == .normal }?.orderOut(nil)
         NSApp.setActivationPolicy(.accessory)
     }

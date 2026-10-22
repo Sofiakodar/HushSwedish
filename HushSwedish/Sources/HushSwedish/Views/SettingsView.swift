@@ -66,6 +66,16 @@ private struct MainSettingsTab: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Setup") {
+                Button("Show Setup Guide") {
+                    replaySetupGuide()
+                }
+                .font(.system(size: 12))
+                Text("Replays the first-launch walkthrough. Your settings and transcripts are left as they are — use this to try the guide again without a full reset.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
             Section {
                 Button(role: .destructive) {
                     settingsWindowRef = NSApp.keyWindow
@@ -98,6 +108,14 @@ private struct MainSettingsTab: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("All preferences will be cleared and reset to defaults. This cannot be undone.")
+        }
+    }
+
+    private func replaySetupGuide() {
+        let window = NSApp.keyWindow
+        window?.close()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            NotificationCenter.default.post(name: .appShowOnboarding, object: nil)
         }
     }
 }
