@@ -81,14 +81,14 @@ private struct SpeakersTab: View {
                             }
                         }
                         Spacer()
-                        Button("Edit") { editing = person }
+                        HStack(spacing: 10) {
+                            Button("Edit") { editing = person }
+                                .buttonStyle(.borderless)
+                            Button("Delete", role: .destructive) {
+                                store.deleteColleague(id: person.id)
+                            }
                             .buttonStyle(.borderless)
-                    }
-                }
-                .onDelete { offsets in
-                    for i in offsets {
-                        let id = store.colleaguesSortedForPicker[i].id
-                        store.deleteColleague(id: id)
+                        }
                     }
                 }
             }
@@ -166,17 +166,18 @@ private struct MeetingsTemplatesTab: View {
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Button("Edit") { editing = template }
+                            HStack(spacing: 10) {
+                                Button("Edit") { editing = template }
+                                    .buttonStyle(.borderless)
+                                Button("Delete", role: .destructive) {
+                                    store.deleteMeetingTemplate(id: template.id)
+                                }
                                 .buttonStyle(.borderless)
+                            }
                         }
                         Text(scheduleSummary(template.schedule))
                             .font(.system(size: 10))
                             .foregroundStyle(.secondary)
-                    }
-                }
-                .onDelete { offsets in
-                    for i in offsets {
-                        store.deleteMeetingTemplate(id: store.meetingTemplates[i].id)
                     }
                 }
             }
