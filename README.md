@@ -107,15 +107,16 @@ Signed DMG / notarization: your Apple Developer ID in `scripts/release.sh`. Layo
 **Official HushScribe** (Homebrew / DMG): [drcursor/HushScribe](https://github.com/drcursor/HushScribe).
 
 ## Day-to-day use
-
+**Setup, only done once:**
 1. **Download** your ASR model once in **Settings → Models** (default for Swedish: **Whisper Large v3**).
 2. Optional: open **Meetings and speakers** once to add **colleagues** and **meeting rules** (weekday + time → default transcript title for Call Capture / file import). 
 3. Optional: You can choose your Obsidian vault in Settings - Output. 
-4. Open the menu bar app — models **warm in the background** while you set **SV/EN**, optional **name** (or tap a **Suggested** meeting title when a rule matches), then **Call Capture** or **Voice Memo**. Wait until **Getting ready…** disappears and the waveform is live before speaking.
-5. After a multi-speaker call, use **Name Speakers** to assign **colleague** names to diarized lines.
-6. Transcripts land as Markdown (+ YAML) in the folder of your choosing (for example an Obsidian vault). **Transcript Viewer** → browse, export, optional on-device **summary** (Qwen3, Gemma, Apple NL).
 
-Close the popover when done; transcription models **drop from RAM** after the idle interval you chose (default 1 hour) so the app can stay in the menu bar without holding ~1–3 GB. Open the menu again before the next meeting to warm up.
+**Day to day:**
+1. Open the menu bar app — models **warm in the background** while you set **SV/EN**, optional **name** (or tap a **Suggested** meeting title when a rule matches), then **Call Capture** or **Voice Memo**. Wait until **Getting ready…** disappears and the waveform is live before speaking. End the transcript with **Stop**.
+2. After a multi-speaker call, use **Name Speakers** to assign **colleague** names to diarized lines.
+3. Transcripts land as Markdown (+ YAML) in the folder of your choosing (for example an Obsidian vault). **Transcript Viewer** → browse, export, optional on-device **summary** (Qwen3, Gemma, Apple NL).
+4. Close the popover when done; transcription models **drop from RAM** after the idle interval you chose (default 1 hour) so the app can stay in the menu bar without holding ~1–3 GB. Open the menu again before the next meeting to warm up.
 
 Nothing is sent to the internet for transcription or summarization; models download from Hugging Face when you choose them in **Settings → Models**.
 
