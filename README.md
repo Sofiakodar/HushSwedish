@@ -24,7 +24,6 @@ It can also be used **next to** the official app (`com.drcursor.hushscribe` vs `
 
 <p align="center">
   <img src="assets/main.png" height="240" alt="HushSwedish — recording" />
-  <img src="assets/naming.png" height="240" alt="HushSwedish — name your transcript" />
   <img src="assets/settings.png" height="240" alt="HushSwedish — settings" />
 </p>
 
@@ -152,7 +151,7 @@ Vi går igenom release-planen.
 ```
 
 <p align="center">
-  <img src="assets/transcription.png" width="400" alt="Transcript viewer" />
+  <img src="assets/transcript.png" width="400" alt="Transcript viewer" />
   <img src="assets/summary.png" width="400" alt="Summary" />
 </p>
 
