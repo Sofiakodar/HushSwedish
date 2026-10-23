@@ -85,12 +85,12 @@ Full details: [docs/changes-from-hushscribe.md](docs/changes-from-hushscribe.md)
 
 ## Install (build from source)
 
-No Homebrew cask for this fork yet.
+No Homebrew cask for this fork yet. **`scripts/release.sh test`** builds a local **`dist/HushSwedish.app`** (compile, bundle, ad-hoc sign). The **`test`** argument is **not** a test suite — it skips notarization and GitHub release. Omit it only when you run a full maintainer release (Developer ID required).
 
 ```bash
 git clone https://github.com/Sofiakodar/HushSwedish.git
 cd HushSwedish
-scripts/release.sh test
+scripts/release.sh test   # local .app only
 open dist/HushSwedish.app
 ```
 
