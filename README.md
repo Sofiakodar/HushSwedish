@@ -109,7 +109,7 @@ Signed DMG / notarization: your Apple Developer ID in `scripts/release.sh`. Layo
 ## Day-to-day use
 **Setup, only done once:**
 1. **Download** your ASR model once in **Settings → Models** (default for Swedish: **Whisper Large v3**).
-2. Optional: open **Meetings and speakers** once to add **colleagues** and **meeting rules** (weekday + time → default transcript title for Call Capture / file import). 
+2. Optional: open **Meetings and speakers** to add **colleagues** and **meeting rules** (weekday + time → default transcript title for Call Capture / file import). 
 3. Optional: You can choose your Obsidian vault in Settings - Output. 
 
 **Day to day:**
