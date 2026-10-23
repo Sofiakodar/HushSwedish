@@ -110,7 +110,7 @@ Signed DMG / notarization: your Apple Developer ID in `scripts/release.sh`. Layo
 **Setup, only done once:**
 1. **Download** your ASR model once in **Settings → Models** (default for Swedish: **Whisper Large v3**).
 2. Optional: open **Meetings and speakers** to add **colleagues** and **meeting rules** (weekday + time → default transcript title for Call Capture / file import). 
-3. Optional: You can choose your Obsidian vault in Settings - Output. 
+3. Optional: You can choose your Obsidian vault in Settings → Output. 
 
 **Day to day:**
 1. Open the menu bar app — models **warm in the background** while you set **SV/EN**, optional **name** (or tap a **Suggested** meeting title when a rule matches), then **Call Capture** or **Voice Memo**. Wait until **Getting ready…** disappears and the waveform is live before speaking. End the transcript with **Stop**.
