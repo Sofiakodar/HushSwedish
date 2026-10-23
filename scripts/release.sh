@@ -29,7 +29,6 @@ ENTITLEMENTS="$SWIFT_DIR/Sources/HushSwedish/HushScribe.entitlements"
 BINARY_PATH=".build/release/HushSwedish"
 APP_DIR="$ROOT_DIR/dist/$APP_NAME.app"
 ICON_PATH="$SWIFT_DIR/Sources/HushSwedish/Assets/AppIcon.icns"
-CASK="$ROOT_DIR/Casks/hushscribe.rb"
 
 mkdir -p "$APP_DIR/Contents/MacOS"
 
@@ -162,11 +161,11 @@ VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" dist/Hu
 
 # Check gh release list
 if gh release list | grep -q -w v"$VERSION"; then
-    echo "Version $VERSION already exists on GitHub. Skipping notarization, release and cask update."
+    echo "Version $VERSION already exists on GitHub. Skipping notarization and release."
     exit 0
 fi
 
-echo "Version $VERSION not found. Proceeding with notarization, release and cask update..."
+echo "Version $VERSION not found. Proceeding with notarization and release..."
 
 
 echo "--- Step 5: Notarization ---"
@@ -195,19 +194,7 @@ if [[ -z "$RELEASE_NOTES" ]]; then
     RELEASE_NOTES="Release v$VERSION"
 fi
 gh release create v$VERSION \
-    dist/HushScribe.dmg \
+    "$DMG_NAME" \
     --title "HushSwedish v$VERSION" \
     --notes "$RELEASE_NOTES"
 echo "Created GH release"
-
-
-echo "--- Step 7: Update cask ---"
-SHA=$(shasum -a 256 dist/HushScribe.dmg | awk '{print $1}')
-
-sed -i '' "s/version \".*\"/version \"$VERSION\"/" "$CASK"
-sed -i '' "s/sha256 \".*\"/sha256 \"$SHA\"/" "$CASK"
-
-git commit -m "bump cask" Casks/hushscribe.rb && git push
-
-echo "Updated cask to version $VERSION with sha256 $SHA"
-

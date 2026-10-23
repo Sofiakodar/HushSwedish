@@ -83,17 +83,16 @@ scripts/bump_version.sh 3.5.2    # explicit version
 
 ### `scripts/release.sh`
 
-Full release pipeline. Requires a valid Developer ID certificate and a stored `notarytool` keychain profile named `HushScribe`.
+Full release pipeline. Requires a valid Developer ID certificate and a stored `notarytool` keychain profile named `HushSwedish`.
 
 Steps:
 1. `swift build -c release` inside `HushSwedish/`
 2. Compile MLX Metal shaders into `mlx.metallib`
-3. Assemble `dist/HushScribe.app` (binary, metallib, icon, logo, Info.plist)
+3. Assemble `dist/HushSwedish.app` (binary, metallib, icon, logo, Info.plist)
 4. Deep-sign all dylibs, frameworks, and the bundle with hardened runtime
-5. Create and sign `dist/HushScribe.dmg`
+5. Create and sign `dist/HushSwedish.dmg`
 6. Notarize and staple (skipped with the `test` argument)
 7. Create GitHub release; body pulled from the matching `CHANGELOG.md` entry
-8. Update `Casks/hushscribe.rb` with the new version and SHA-256, then `git push`
 
 **Local test run** (skips notarization and GitHub release):
 ```bash
@@ -102,14 +101,14 @@ scripts/release.sh test
 
 To rebuild and relaunch without resetting preferences:
 ```bash
-rm dist/HushScribe.app/Contents/MacOS/HushScribe
+rm dist/HushSwedish.app/Contents/MacOS/HushSwedish
 scripts/release.sh test
-dist/HushScribe.app/Contents/MacOS/HushScribe
+dist/HushSwedish.app/Contents/MacOS/HushSwedish
 ```
 
 To also reset all stored preferences:
 ```bash
-defaults delete com.drcursor.hushscribe
+defaults delete com.hushswedish.app
 ```
 
 ### `scripts/test.sh`
@@ -120,10 +119,10 @@ Convenience one-liner used during development: rebuilds the release binary, wipe
 
 **Requirements:** Apple Silicon Mac, macOS 26+, Xcode 26.3+
 
-**Release build** — produces a signed, notarized `dist/HushScribe.dmg` and creates a GitHub release:
+**Release build** — produces a signed, notarized `dist/HushSwedish.dmg` and creates a GitHub release:
 ```bash
-git clone git@github.com:drcursor/HushScribe.git
-cd HushScribe
+git clone https://github.com/Sofiakodar/HushSwedish.git
+cd HushSwedish
 scripts/release.sh
 ```
 
